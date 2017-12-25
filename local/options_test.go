@@ -2,8 +2,12 @@ package local_test
 
 import (
 	"crypto/sha512"
+	"encoding/hex"
+	"hash"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/fishy/fsdb/interface"
 	"github.com/fishy/fsdb/local"
@@ -146,6 +150,47 @@ func TestOptions(t *testing.T) {
 			if actual != expect {
 				t.Errorf("hash dir for key %q expected %q, got %q", key, expect, actual)
 			}
+		},
+	)
+
+	t.Run(
+		"hash-reentrant",
+		func(t *testing.T) {
+			if testing.Short() {
+				t.Skip("skipping test in short mode.")
+			}
+
+			calcHash := func(h hash.Hash, key fsdb.Key, sleep time.Duration) string {
+				h.Write(key)
+				time.Sleep(sleep)
+				return hex.EncodeToString(h.Sum([]byte{}))
+			}
+
+			keys := []fsdb.Key{
+				fsdb.Key("foo"),
+				fsdb.Key("bar"),
+				fsdb.Key("key"),
+			}
+			expect := make([]string, len(keys))
+			for i, key := range keys {
+				expect[i] = calcHash(sha512.New512_224(), key, 0)
+			}
+
+			opts.SetHashFunc(sha512.New512_224)
+			var wg sync.WaitGroup
+			wg.Add(len(keys))
+			sleep := time.Second * 3
+			for i, key := range keys {
+				go func(key fsdb.Key, expect string) {
+					defer wg.Done()
+
+					actual := calcHash(opts.GetHashFunc()(), key, sleep)
+					if actual != expect {
+						t.Errorf("hash for %q expected %q, got %q", key, expect, actual)
+					}
+				}(key, expect[i])
+			}
+			wg.Wait()
 		},
 	)
 }
