@@ -32,4 +32,8 @@ func TestTypeCheck(t *testing.T) {
 	if fsdb.IsNoSuchKeyError(err) {
 		t.Errorf("%q should not be an instance of NoSuchKeyError", err)
 	}
+
+	if fsdb.IsNoSuchKeyError(nil) {
+		t.Errorf("nil should not be an instance of NoSuchKeyError")
+	}
 }
