@@ -13,7 +13,7 @@ func (key Key) String() string {
 	if utf8.Valid(key) {
 		return string(key)
 	}
-	return hex.EncodeToString(key)
+	return "[0x" + hex.EncodeToString(key) + "]"
 }
 
 // Equals compares the key to another key.
