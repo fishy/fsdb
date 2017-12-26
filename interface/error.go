@@ -4,6 +4,9 @@ import (
 	"fmt"
 )
 
+// Make sure *ErrNoSuchKey satisifies error interface.
+var _ error = new(ErrNoSuchKey)
+
 // ErrNoSuchKey is the error returned by Read and Delete functions when the key
 // requested does not exists.
 type ErrNoSuchKey struct {
@@ -15,7 +18,7 @@ func (err *ErrNoSuchKey) Error() string {
 }
 
 // NewErrNoSuchKey creates a new ErrNoSuchKey error
-func NewErrNoSuchKey(key Key) error {
+func NewErrNoSuchKey(key Key) *ErrNoSuchKey {
 	return &ErrNoSuchKey{
 		key: key,
 	}

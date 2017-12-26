@@ -7,14 +7,6 @@ import (
 	"github.com/fishy/fsdb/interface"
 )
 
-func TestType(t *testing.T) {
-	err := fsdb.NewErrNoSuchKey(fsdb.Key("foobar"))
-	_, ok := err.(error)
-	if !ok {
-		t.Errorf("%q should be an instance of error", err)
-	}
-}
-
 func TestError(t *testing.T) {
 	err := fsdb.NewErrNoSuchKey(fsdb.Key("foobar"))
 	expect := "no such key: \"foobar\""
@@ -25,7 +17,9 @@ func TestError(t *testing.T) {
 }
 
 func TestTypeCheck(t *testing.T) {
-	err := fsdb.NewErrNoSuchKey(fsdb.Key("foobar"))
+	var err error
+
+	err = fsdb.NewErrNoSuchKey(fsdb.Key("foobar"))
 	if !fsdb.IsErrNoSuchKey(err) {
 		t.Errorf("%q should be an instance of ErrNoSuchKey", err)
 	}
