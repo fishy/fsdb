@@ -142,13 +142,13 @@ func TestOptions(t *testing.T) {
 			)
 			actual = opts.GetDirForKey(key)
 			if actual != expect {
-				t.Errorf("hash dir for key %q expected %q, got %q", key, expect, actual)
+				t.Errorf("hash dir for key %v expected %q, got %q", key, expect, actual)
 			}
 
 			opts.SetDirLevel(sha512.Size224)
 			actual = opts.GetDirForKey(key)
 			if actual != expect {
-				t.Errorf("hash dir for key %q expected %q, got %q", key, expect, actual)
+				t.Errorf("hash dir for key %v expected %q, got %q", key, expect, actual)
 			}
 		},
 	)
@@ -186,7 +186,7 @@ func TestOptions(t *testing.T) {
 
 					actual := calcHash(opts.GetHashFunc()(), key, sleep)
 					if actual != expect {
-						t.Errorf("hash for %q expected %q, got %q", key, expect, actual)
+						t.Errorf("hash for %v expected %q, got %q", key, expect, actual)
 					}
 				}(key, expect[i])
 			}

@@ -25,7 +25,7 @@ func TestAdd(t *testing.T) {
 	}
 	actual := err.GetErrors()[0]
 	if actual != err0 {
-		t.Errorf("Expected %q, got %q", err0, actual)
+		t.Errorf("Expected %#v, got %#v", err0, actual)
 	}
 
 	another := errbatch.NewErrBatch()
@@ -44,13 +44,13 @@ func TestAdd(t *testing.T) {
 
 	batch := err.GetErrors()
 	if batch[0] != err0 {
-		t.Errorf("Expected %q, got %q", err0, batch[0])
+		t.Errorf("Expected %#v, got %#v", err0, batch[0])
 	}
 	if batch[1] != err1 {
-		t.Errorf("Expected %q, got %q", err1, batch[1])
+		t.Errorf("Expected %#v, got %#v", err1, batch[1])
 	}
 	if batch[2] != err2 {
-		t.Errorf("Expected %q, got %q", err2, batch[2])
+		t.Errorf("Expected %#v, got %#v", err2, batch[2])
 	}
 
 	err.Clear()
@@ -67,18 +67,22 @@ func TestCompile(t *testing.T) {
 
 	err := batch.Compile()
 	if err != nil {
-		t.Errorf("An empty batch should be compiled to nil, got: %q", err)
+		t.Errorf("An empty batch should be compiled to nil, got: %#v", err)
 	}
 	batch.Add(err0)
 	err = batch.Compile()
 	if err != err0 {
-		t.Errorf("A single error batch should be compiled to %q, got %q", err0, err)
+		t.Errorf(
+			"A single error batch should be compiled to %#v, got %#v",
+			err0,
+			err,
+		)
 	}
 	batch.Add(err1)
 	batch.Add(err2)
 	err = batch.Compile()
 	expect := "total 3 error(s) in this batch: foo; bar; foobar"
 	if err.Error() != expect {
-		t.Errorf("Compiled error expected %q, got %q", expect, err)
+		t.Errorf("Compiled error expected %#v, got %v", expect, err)
 	}
 }
