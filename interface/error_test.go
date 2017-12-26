@@ -8,7 +8,9 @@ import (
 )
 
 func TestError(t *testing.T) {
-	err := fsdb.NewErrNoSuchKey(fsdb.Key("foobar"))
+	err := &fsdb.NoSuchKeyError{
+		Key: fsdb.Key("foobar"),
+	}
 	expect := "no such key: \"foobar\""
 	actual := err.Error()
 	if expect != actual {
@@ -19,13 +21,15 @@ func TestError(t *testing.T) {
 func TestTypeCheck(t *testing.T) {
 	var err error
 
-	err = fsdb.NewErrNoSuchKey(fsdb.Key("foobar"))
-	if !fsdb.IsErrNoSuchKey(err) {
-		t.Errorf("%q should be an instance of ErrNoSuchKey", err)
+	err = &fsdb.NoSuchKeyError{
+		Key: fsdb.Key("foobar"),
+	}
+	if !fsdb.IsNoSuchKeyError(err) {
+		t.Errorf("%q should be an instance of NoSuchKeyError", err)
 	}
 
 	err = errors.New("foobar")
-	if fsdb.IsErrNoSuchKey(err) {
-		t.Errorf("%q should not be an instance of ErrNoSuchKey", err)
+	if fsdb.IsNoSuchKeyError(err) {
+		t.Errorf("%q should not be an instance of NoSuchKeyError", err)
 	}
 }
