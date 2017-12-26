@@ -268,8 +268,60 @@ func (db *impl) ScanKeys(
 	keyFunc func(key fsdb.Key) bool,
 	errFunc func(err error) bool,
 ) error {
-	// TODO
-	return nil
+	_, err := scanKeys(db.GetRootDataDir(), keyFunc, errFunc)
+	return err
+}
+
+func scanKeys(
+	root string,
+	keyFunc func(key fsdb.Key) bool,
+	errFunc func(err error) bool,
+) (bool, error) {
+	dir, err := os.Open(root)
+	if err != nil {
+		if errFunc == nil || !errFunc(err) {
+			return false, err
+		}
+	}
+	infos, err := dir.Readdir(0)
+	dir.Close()
+	if err != nil {
+		if errFunc == nil || !errFunc(err) {
+			return false, err
+		}
+	}
+	if len(infos) == 0 && err == nil {
+		// Empty direcoty, do some cleanup here.
+		dir.Close()
+		os.Remove(root)
+		return true, nil
+	}
+	for _, info := range infos {
+		if info.IsDir() {
+			ret, err := scanKeys(root+info.Name()+PathSeparator, keyFunc, errFunc)
+			if err != nil {
+				return false, err
+			}
+			if !ret {
+				return ret, nil
+			}
+			continue
+		}
+		if info.Name() == KeyFilename {
+			path := root + info.Name()
+			key, err := readKey(path)
+			if err != nil {
+				if errFunc == nil || !errFunc(err) {
+					return false, err
+				}
+			}
+			ret := keyFunc(key)
+			if !ret {
+				return ret, nil
+			}
+		}
+	}
+	return true, nil
 }
 
 func checkKeyCollision(key fsdb.Key, path string) error {

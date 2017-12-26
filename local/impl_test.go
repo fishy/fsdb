@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -141,6 +142,54 @@ func TestDirs(t *testing.T) {
 	}
 	if _, err := os.Lstat(actual); err != nil {
 		t.Errorf("%q should exists, got: %v", actual, err)
+	}
+}
+
+func TestScan(t *testing.T) {
+	root := os.TempDir() + local.PathSeparator + "fsdb"
+	defer os.RemoveAll(root)
+	opts := local.NewDefaultOptions(root)
+	// Make sure the first scan won't fail
+	os.MkdirAll(opts.GetDataDir(), local.FileModeForDirs)
+	db := local.Open(opts)
+
+	keys := make(map[string]bool)
+	keyFunc := func(ret bool) func(key fsdb.Key) bool {
+		return func(key fsdb.Key) bool {
+			keys[string(key)] = true
+			return ret
+		}
+	}
+	if err := db.ScanKeys(keyFunc(true), nil); err != nil {
+		t.Fatalf("ScanKeys failed: %v", err)
+	}
+	if len(keys) != 0 {
+		t.Errorf("Scan empty db got keys: %+v", keys)
+	}
+
+	expectKeys := map[string]bool{
+		"foo":    true,
+		"bar":    true,
+		"foobar": true,
+	}
+	for key := range expectKeys {
+		if err := db.Write(fsdb.Key(key), strings.NewReader("")); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
+	}
+	if err := db.ScanKeys(keyFunc(true), nil); err != nil {
+		t.Fatalf("ScanKeys failed: %v", err)
+	}
+	if !reflect.DeepEqual(keys, expectKeys) {
+		t.Errorf("ScanKeys expected %+v, got %+v", expectKeys, keys)
+	}
+
+	keys = make(map[string]bool)
+	if err := db.ScanKeys(keyFunc(false), nil); err != nil {
+		t.Fatalf("ScanKeys failed: %v", err)
+	}
+	if len(keys) != 1 {
+		t.Errorf("Scan should stop after the first key, got: %+v", keys)
 	}
 }
 
