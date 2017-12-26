@@ -1,4 +1,5 @@
-// Package fsdb defines the interfaces for FSDB implementations.
+// Package fsdb defines the interfaces of a key-value store on top of file
+// systems.
 //
 // The interface FSDB defines basic Read, Write and Delete functions.
 //

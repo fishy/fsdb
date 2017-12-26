@@ -38,13 +38,13 @@ type Local interface {
 	// It's guaranteed to end with os.PathSeparator.
 	GetRootDataDir() string
 
-	// GetTempDir returns a temporary directory that's guaranteed to be on the
-	// same file system of the data directory.
+	// GetTempDir returns a temporary directory that's on the same file system of
+	// the data directory.
 	//
-	// It's guaranteed to end with os.PathSeparator.
+	// It's guaranteed to exist, accessible and end with os.PathSeparator,
 	//
 	// It's the caller's responsibility to delete the directory after use.
-	GetTempDir() string
+	GetTempDir() (string, error)
 
 	// ScanKeys scans all the keys locally.
 	//
