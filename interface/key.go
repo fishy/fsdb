@@ -2,7 +2,7 @@ package fsdb
 
 import (
 	"bytes"
-	"encoding/hex"
+	"fmt"
 	"unicode/utf8"
 )
 
@@ -13,7 +13,7 @@ func (key Key) String() string {
 	if utf8.Valid(key) {
 		return string(key)
 	}
-	return "[0x" + hex.EncodeToString(key) + "]"
+	return fmt.Sprintf("%v", []byte(key))
 }
 
 // Equals compares the key to another key.

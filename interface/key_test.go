@@ -15,7 +15,7 @@ func TestString(t *testing.T) {
 	}
 
 	key = fsdb.Key{0xff, 0xfe, 0xfd}
-	expect = "[0xfffefd]"
+	expect = "[255 254 253]"
 	actual = key.String()
 	if expect != actual {
 		t.Errorf("(%v).String() expected %q, got %q", key, expect, actual)
