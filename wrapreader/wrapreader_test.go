@@ -1,6 +1,10 @@
 package wrapreader_test
 
 import (
+	"compress/gzip"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/fishy/fsdb/wrapreader"
@@ -72,4 +76,42 @@ func TestCloseBoth(t *testing.T) {
 			"WrapReader.Close should call the underlying reader's Close function",
 		)
 	}
+}
+
+func ExampleWrap() {
+	filename := "_test.gz"
+	content := "Hello, world!"
+	defer os.Remove(filename)
+
+	f, err := os.Create(filename)
+	if err != nil {
+		// TODO: handle error
+	}
+	writer := gzip.NewWriter(f)
+	_, err = writer.Write([]byte(content))
+	if err != nil {
+		// TODO: handle error
+	}
+	writer.Close()
+	f.Close()
+
+	f, err = os.Open(filename)
+	if err != nil {
+		// TODO: handle error
+	}
+	reader, err := gzip.NewReader(f)
+	if err != nil {
+		// TODO: handle error
+	}
+	readCloser := wrapreader.Wrap(reader, f)
+	// readCloser.Close() will close both f and reader
+	defer readCloser.Close()
+	// Read from readCloser is actually read from reader
+	read, err := ioutil.ReadAll(readCloser)
+	if err != nil {
+		// TODO: handle error
+	}
+	fmt.Println(string(read))
+	// Output:
+	// Hello, world!
 }

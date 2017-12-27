@@ -31,9 +31,9 @@ func (r *wrapReader) Read(p []byte) (int, error) {
 
 func (r *wrapReader) Close() error {
 	err := errbatch.NewErrBatch()
-	err.Add(r.closer.Close())
 	if closer, ok := r.reader.(io.Closer); ok {
 		err.Add(closer.Close())
 	}
+	err.Add(r.closer.Close())
 	return err.Compile()
 }
