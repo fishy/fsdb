@@ -25,8 +25,8 @@ const (
 	KeyFilename = "key"
 
 	DataFilename       = "data"
-	SnappyDataFilename = "data.snappy"
 	GzipDataFilename   = "data.gz"
+	SnappyDataFilename = "data.snappy"
 )
 
 // Temporary directory related constants:
@@ -85,15 +85,6 @@ func (db *impl) Read(key fsdb.Key) (io.ReadCloser, error) {
 		return os.Open(dataFile)
 	}
 
-	dataFile = dir + SnappyDataFilename
-	if _, err := os.Lstat(dataFile); err == nil {
-		file, err := os.Open(dataFile)
-		if err != nil {
-			return nil, err
-		}
-		return wrapreader.Wrap(snappy.NewReader(file), file), nil
-	}
-
 	dataFile = dir + GzipDataFilename
 	if _, err := os.Lstat(dataFile); err == nil {
 		file, err := os.Open(dataFile)
@@ -105,6 +96,15 @@ func (db *impl) Read(key fsdb.Key) (io.ReadCloser, error) {
 			return nil, err
 		}
 		return wrapreader.Wrap(reader, file), nil
+	}
+
+	dataFile = dir + SnappyDataFilename
+	if _, err := os.Lstat(dataFile); err == nil {
+		file, err := os.Open(dataFile)
+		if err != nil {
+			return nil, err
+		}
+		return wrapreader.Wrap(snappy.NewReader(file), file), nil
 	}
 
 	// Key file exists but there's no data file,
