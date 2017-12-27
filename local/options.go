@@ -16,7 +16,7 @@ const charsPerLevel = 2
 // PathSeparator is the string version of os.PathSeparator.
 const PathSeparator = string(os.PathSeparator)
 
-// Default options values:
+// Default options values.
 const (
 	DefaultDataDir = "data" + PathSeparator
 	DefaultTempDir = "_tmp" + PathSeparator

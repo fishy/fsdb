@@ -7,7 +7,7 @@ import (
 // Make sure *NoSuchKeyError satisifies error interface.
 var _ error = new(NoSuchKeyError)
 
-// NoSuchKeyError is returned by Read and Delete functions when the key
+// NoSuchKeyError is an error returned by Read and Delete functions when the key
 // requested does not exists.
 type NoSuchKeyError struct {
 	Key Key

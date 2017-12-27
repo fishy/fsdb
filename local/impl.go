@@ -20,7 +20,7 @@ import (
 var _ fsdb.Local = new(impl)
 var _ error = new(KeyCollisionError)
 
-// Filenames used under the entry directory:
+// Filenames used under the entry directory.
 const (
 	KeyFilename = "key"
 
@@ -29,7 +29,7 @@ const (
 	SnappyDataFilename = "data.snappy"
 )
 
-// Temporary directory related constants:
+// Temporary directory related constants.
 var (
 	MaxTempDirRetries = 3
 	BytesInTempDir    = 8
@@ -37,13 +37,13 @@ var (
 	TempDirFileMode os.FileMode = 0700
 )
 
-// Permissions for files and directories:
+// Permissions for files and directories.
 var (
 	FileModeForFiles os.FileMode = 0600
 	FileModeForDirs  os.FileMode = 0700
 )
 
-// KeyCollisionError is returned when two keys have the same hash.
+// KeyCollisionError is an error returned when two keys have the same hash.
 type KeyCollisionError struct {
 	NewKey fsdb.Key
 	OldKey fsdb.Key
