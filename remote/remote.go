@@ -5,6 +5,8 @@ import (
 	"compress/gzip"
 	"hash/crc32"
 	"io"
+	"io/ioutil"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -13,6 +15,9 @@ import (
 	"github.com/fishy/fsdb/errbatch"
 	"github.com/fishy/fsdb/interface"
 )
+
+const tempDirPrefix = "remote_"
+const tempFilename = "data"
 
 var crc32cTable = crc32.MakeTable(crc32.Castagnoli)
 
@@ -66,16 +71,26 @@ func (db *remoteDB) Read(key fsdb.Key) (data io.ReadCloser, err error) {
 		)
 	}
 	remoteData, err := db.bucket.Read(db.opts.GetRemoteName(key))
-	if err == nil {
+	if remoteData != nil {
 		defer remoteData.Close()
 	}
 	if !db.bucket.IsNotExist(err) {
 		if err != nil {
 			return nil, err
 		}
-		// Download completely
-		buf := new(bytes.Buffer)
-		_, err := io.Copy(buf, remoteData)
+		buf, _ := ioutil.ReadAll(remoteData)
+		gzipReader, err := gzip.NewReader(bytes.NewReader(buf))
+		if err != nil {
+			return nil, err
+		}
+		defer gzipReader.Close()
+		tmpdir, tmpfile, err := db.saveTempFile(gzipReader)
+		if tmpdir != "" {
+			defer os.Remove(tmpdir)
+		}
+		if tmpfile != "" {
+			defer os.Remove(tmpfile)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -85,12 +100,12 @@ func (db *remoteDB) Read(key fsdb.Key) (data io.ReadCloser, err error) {
 		if err == nil {
 			return data, nil
 		}
-		gzipReader, err := gzip.NewReader(buf)
+		f, err := os.Open(tmpfile)
 		if err != nil {
 			return nil, err
 		}
-		defer gzipReader.Close()
-		if err = db.local.Write(key, buf); err != nil {
+		defer f.Close()
+		if err = db.local.Write(key, f); err != nil {
 			return nil, err
 		}
 	}
@@ -122,17 +137,52 @@ func (db *remoteDB) Write(key fsdb.Key, data io.Reader) error {
 	return db.local.Write(key, data)
 }
 
+func (db *remoteDB) readAndCRC(key fsdb.Key) (uint32, []byte, error) {
+	reader, err := db.local.Read(key)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer reader.Close()
+	buf, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return 0, nil, err
+	}
+	return crc32.Checksum(buf, crc32cTable), buf, nil
+}
+
+func (db *remoteDB) saveTempFile(data io.Reader) (
+	dir string,
+	file string,
+	err error,
+) {
+	dir, err = db.local.GetTempDir(tempDirPrefix)
+	if err != nil {
+		return
+	}
+	file = dir + tempFilename
+	f, err := os.Create(file)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	_, err = io.Copy(f, data)
+	return
+}
+
 func (db *remoteDB) uploadKey(key fsdb.Key) error {
-	oldCrc, content, err := db.readAndGzip(key)
+	oldCrc, content, err := db.readAndCRC(key)
 	if err != nil {
 		return err
 	}
-	err = db.bucket.Write(db.opts.GetRemoteName(key), bytes.NewReader(content))
+	reader, err := gzipData(bytes.NewReader(content))
 	if err != nil {
+		return err
+	}
+	if err = db.bucket.Write(db.opts.GetRemoteName(key), reader); err != nil {
 		return err
 	}
 	// check crc again before deleting
-	newCrc, _, err := db.readAndGzip(key)
+	newCrc, _, err := db.readAndCRC(key)
 	if err != nil {
 		return err
 	}
@@ -140,29 +190,6 @@ func (db *remoteDB) uploadKey(key fsdb.Key) error {
 		return db.local.Delete(key)
 	}
 	return nil
-}
-
-func (db *remoteDB) readAndGzip(key fsdb.Key) (uint32, []byte, error) {
-	reader, err := db.local.Read(key)
-	if err != nil {
-		return 0, nil, err
-	}
-	defer reader.Close()
-	buf := new(bytes.Buffer)
-	gzipWriter, err := gzip.NewWriterLevel(buf, gzip.BestCompression)
-	if err != nil {
-		return 0, nil, err
-	}
-	defer gzipWriter.Close()
-	_, err = io.Copy(buf, reader)
-	if err != nil {
-		return 0, nil, err
-	}
-	if err = gzipWriter.Flush(); err != nil {
-		return 0, nil, err
-	}
-	content := buf.Bytes()
-	return crc32.Checksum(content, crc32cTable), content, nil
 }
 
 func (db *remoteDB) startScanLoop() {
@@ -245,4 +272,17 @@ func initAtomicInt64() *int64 {
 	ret := new(int64)
 	atomic.StoreInt64(ret, 0)
 	return ret
+}
+
+func gzipData(data io.Reader) (io.Reader, error) {
+	buf := new(bytes.Buffer)
+	writer, err := gzip.NewWriterLevel(buf, gzip.BestCompression)
+	if err != nil {
+		return nil, err
+	}
+	defer writer.Close()
+	if _, err = io.Copy(writer, data); err != nil {
+		return nil, err
+	}
+	return buf, nil
 }
