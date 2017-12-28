@@ -1,5 +1,5 @@
 // Package bucket defines an interface for cloud storage buckets
-// (e.g. s3 or Google Cloud Storage).
+// (AWS S3, Google Cloud Storage, etc.).
 //
 // It also provides a mock implementation backed by local FSDB for testing.
 package bucket
