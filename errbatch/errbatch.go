@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// ErrBatch is a single error that can contain multiple errors.
+// ErrBatch is an error that can contain multiple errors.
 type ErrBatch struct {
 	errors []error
 }
@@ -17,7 +17,7 @@ func NewErrBatch() *ErrBatch {
 	}
 }
 
-// Error generates the single error of the batch.
+// Error satisifies the error interface.
 func (eb *ErrBatch) Error() string {
 	var buf bytes.Buffer
 	buf.WriteString(
@@ -34,9 +34,9 @@ func (eb *ErrBatch) Error() string {
 	return buf.String()
 }
 
-// Add addes a new error into the batch.
+// Add addes an error into the batch.
 //
-// If the new error is also an ErrBatch,
+// If the error is also an ErrBatch,
 // its underlying errors will be added instad of the ErrBatch itself.
 //
 // Any nil error(s) will be skipped.

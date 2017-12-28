@@ -54,6 +54,8 @@ type KeyFunc func(key Key) bool
 //
 // It's the callback function called when the scan encounters an I/O error that
 // is possible to be ignored.
+//
+// It should return true to ignore the error, or false to abort the scan.
 type ErrFunc func(err error) bool
 
 // StopAllErrFunc is an ErrFunc that can be used in Local.ScanKeys().
