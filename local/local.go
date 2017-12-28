@@ -3,10 +3,12 @@ package local
 import (
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/fishy/fsdb/interface"
@@ -19,6 +21,8 @@ var _ error = new(KeyCollisionError)
 
 const tempDirPrefix = "fsdb_"
 const tempDirMode os.FileMode = 0700
+
+var errCanceled = errors.New("canceled by keyFunc")
 
 // Filenames used under the entry directory.
 const (
@@ -213,63 +217,47 @@ func (db *impl) GetTempDir(prefix string) (dir string, err error) {
 	return
 }
 
-func (db *impl) ScanKeys(
-	keyFunc func(key fsdb.Key) bool,
-	errFunc func(err error) bool,
-) error {
-	_, err := scanKeys(db.GetRootDataDir(), keyFunc, errFunc)
-	return err
-}
-
-func scanKeys(
-	root string,
-	keyFunc func(key fsdb.Key) bool,
-	errFunc func(err error) bool,
-) (bool, error) {
-	dir, err := os.Open(root)
-	if err != nil {
-		if errFunc == nil || !errFunc(err) {
-			return false, err
-		}
-	}
-	infos, err := dir.Readdir(-1)
-	dir.Close()
-	if err != nil {
-		if errFunc == nil || !errFunc(err) {
-			return false, err
-		}
-	}
-	if len(infos) == 0 && err == nil {
-		// Empty direcoty, do some cleanup here.
-		os.Remove(root)
-		return true, nil
-	}
-	for _, info := range infos {
-		if info.IsDir() {
-			ret, err := scanKeys(root+info.Name()+PathSeparator, keyFunc, errFunc)
+func (db *impl) ScanKeys(keyFunc fsdb.KeyFunc, errFunc fsdb.ErrFunc) error {
+	if err := filepath.Walk(
+		db.GetRootDataDir(),
+		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				return false, err
+				if errFunc(err) {
+					return filepath.SkipDir
+				}
+				return err
 			}
-			if !ret {
-				return ret, nil
+			if info.IsDir() {
+				// Remove empty directories.
+				//
+				// It's safe because calling os.Remove on a directory will only work
+				// if it's empty, which is exactly what we want.
+				//
+				// It's possible that after this empty directory is removed,
+				// a previously walked directory becomes empty.
+				// That could get removed on next scan.
+				os.Remove(path)
+				return nil
 			}
-			continue
-		}
-		if info.Name() == KeyFilename {
-			path := root + info.Name()
-			key, err := readKey(path)
-			if err != nil {
-				if errFunc == nil || !errFunc(err) {
-					return false, err
+			if filepath.Base(path) == KeyFilename {
+				key, err := readKey(path)
+				if err != nil {
+					if errFunc(err) {
+						return filepath.SkipDir
+					}
+					return err
+				}
+				ret := keyFunc(key)
+				if !ret {
+					return errCanceled
 				}
 			}
-			ret := keyFunc(key)
-			if !ret {
-				return ret, nil
-			}
-		}
+			return nil
+		},
+	); err != errCanceled {
+		return err
 	}
-	return true, nil
+	return nil
 }
 
 func checkKeyCollision(key fsdb.Key, path string) error {

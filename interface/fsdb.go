@@ -48,26 +48,36 @@ type Local interface {
 
 	// ScanKeys scans all the keys locally.
 	//
-	// The keyFunc parameter is the callback function called for every key it
-	// scanned.
-	// It should return true to continue the scan and false to abort the scan.
-	// The keyFunc must not be nil.
-	// It's OK for keyFunc to block.
-	//
-	// The errFunc parameter is the callback function called when the scan
-	// encounters an I/O error that is possible to be ignored.
-	// It should return true if the error is safe to ignore and continue the scan.
-	// The errFunc could be nil,
-	// which means the scan stops at the first error it encounters.
-	// If you want to ignore all, use IgnoreAllErrFunc.
-	//
 	// This function would be heavy on IO and takes a long time. Use with caution.
 	//
 	// The behavior is undefined for keys changed after the scan started.
-	ScanKeys(keyFunc func(key Key) bool, errFunc func(err error) bool) error
+	ScanKeys(keyFunc KeyFunc, errFunc ErrFunc) error
 }
 
-// IgnoreAllErrFunc is an errFunc that can be used in Local.ScanKeys().
+// KeyFunc is used in ScanKeys function in Local interface.
+//
+// It's the callback function called for every key scanned.
+//
+// It should return true to continue the scan and false to abort the scan.
+//
+// It's OK for KeyFunc to block.
+type KeyFunc func(key Key) bool
+
+// ErrFunc is used in ScanKeys function in Local interface.
+//
+// It's the callback function called when the scan encounters an I/O error that
+// is possible to be ignored.
+type ErrFunc func(err error) bool
+
+// StopAllErrFunc is an ErrFunc that can be used in Local.ScanKeys().
+//
+// It always returns false,
+// means the scan stops at the first I/O errors it encounters.
+func StopAllErrFunc(err error) bool {
+	return false
+}
+
+// IgnoreAllErrFunc is an ErrFunc that can be used in Local.ScanKeys().
 //
 // It always returns true, means the scan ignores all I/O errors if possible.
 func IgnoreAllErrFunc(err error) bool {

@@ -156,7 +156,8 @@ func TestScan(t *testing.T) {
 			return ret
 		}
 	}
-	if err := db.ScanKeys(keyFunc(true), fsdb.IgnoreAllErrFunc); err != nil {
+	err = db.ScanKeys(keyFunc(true), fsdb.IgnoreAllErrFunc)
+	if err != nil {
 		t.Fatalf("ScanKeys failed: %v", err)
 	}
 	if len(keys) != 0 {
@@ -173,7 +174,7 @@ func TestScan(t *testing.T) {
 			t.Fatalf("Write failed: %v", err)
 		}
 	}
-	if err := db.ScanKeys(keyFunc(true), nil); err != nil {
+	if err := db.ScanKeys(keyFunc(true), fsdb.StopAllErrFunc); err != nil {
 		t.Fatalf("ScanKeys failed: %v", err)
 	}
 	if !reflect.DeepEqual(keys, expectKeys) {
@@ -181,7 +182,7 @@ func TestScan(t *testing.T) {
 	}
 
 	keys = make(map[string]bool)
-	if err := db.ScanKeys(keyFunc(false), nil); err != nil {
+	if err := db.ScanKeys(keyFunc(false), fsdb.StopAllErrFunc); err != nil {
 		t.Fatalf("ScanKeys failed: %v", err)
 	}
 	if len(keys) != 1 {
