@@ -27,7 +27,7 @@ func (db *dbCollection) Open(ctx context.Context) {
 }
 
 func TestLocal(t *testing.T) {
-	root, db := createRemoteDB(t)
+	root, db := createRemoteDB(t, "local: ")
 	defer os.RemoveAll(root)
 	db.Open(context.Background())
 
@@ -67,7 +67,7 @@ func TestRemote(t *testing.T) {
 	delay := time.Millisecond * 100
 	longer := time.Millisecond * 150
 
-	root, db := createRemoteDB(t)
+	root, db := createRemoteDB(t, "remote: ")
 	defer os.RemoveAll(root)
 	db.Opts.SetUploadDelay(delay).SetSkipFunc(remote.UploadAll)
 
@@ -143,7 +143,7 @@ func TestSkip(t *testing.T) {
 		return key.Equals(key2)
 	}
 
-	root, db := createRemoteDB(t)
+	root, db := createRemoteDB(t, "skip: ")
 	defer os.RemoveAll(root)
 	db.Opts.SetUploadDelay(delay).SetSkipFunc(skipFunc)
 
@@ -197,7 +197,7 @@ func TestSlowUpload(t *testing.T) {
 	content := "foobar"
 	left := 2
 
-	root, db := createRemoteDB(t)
+	root, db := createRemoteDB(t, "slow-upload: ")
 	defer os.RemoveAll(root)
 	db.Remote.WriteDelay = bucket.MockOperationDelay{
 		Before: delay,
@@ -243,7 +243,7 @@ func TestUploadRaceCondition(t *testing.T) {
 	content1 := "foo"
 	content2 := "bar"
 
-	root, db := createRemoteDB(t)
+	root, db := createRemoteDB(t, "upload-race-condition: ")
 	defer os.RemoveAll(root)
 	db.Remote.WriteDelay = bucket.MockOperationDelay{
 		Before: delay,
@@ -288,7 +288,7 @@ func TestRemoteReadRaceCondition(t *testing.T) {
 	content1 := "foo"
 	content2 := "bar"
 
-	root, db := createRemoteDB(t)
+	root, db := createRemoteDB(t, "read-race-condition: ")
 	defer os.RemoveAll(root)
 	db.Remote.ReadDelay = bucket.MockOperationDelay{
 		Before: delay,
@@ -316,7 +316,11 @@ func TestRemoteReadRaceCondition(t *testing.T) {
 	compareContent(t, db.DB, key, content2)
 }
 
-func createRemoteDB(t *testing.T) (root string, db dbCollection) {
+func createRemoteDB(
+	t *testing.T, prefix string,
+) (
+	root string, db dbCollection,
+) {
 	root, err := ioutil.TempDir("", "fsdb_remote_")
 	if err != nil {
 		t.Fatalf("failed to get tmp dir: %v", err)
@@ -329,7 +333,7 @@ func createRemoteDB(t *testing.T) (root string, db dbCollection) {
 	db.Local = local.Open(local.NewDefaultOptions(localRoot))
 	db.Remote = bucket.MockBucket(remoteRoot)
 	db.Opts = remote.NewDefaultOptions()
-	db.Opts.SetLogger(log.New(os.Stderr, "", log.LstdFlags))
+	db.Opts.SetLogger(log.New(os.Stderr, prefix, log.LstdFlags|log.Lmicroseconds))
 	db.Opts.SetSkipFunc(remote.SkipAll)
 	return
 }
