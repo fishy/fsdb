@@ -19,5 +19,6 @@ go_test(
         "key_test.go",
     ],
     importpath = "github.com/fishy/fsdb/interface_test",
+    size = "small",
     deps = [":go_default_library"],
 )

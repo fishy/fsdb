@@ -20,5 +20,6 @@ go_test(
     srcs = ["mock_test.go"],
     embed = [":go_default_library"],
     importpath = "github.com/fishy/fsdb/bucket",
+    size = "small",
     deps = ["//interface:go_default_library"],
 )

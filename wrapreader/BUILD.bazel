@@ -15,5 +15,6 @@ go_test(
     name = "go_default_xtest",
     srcs = ["wrapreader_test.go"],
     importpath = "github.com/fishy/fsdb/wrapreader_test",
+    size = "small",
     deps = [":go_default_library"],
 )

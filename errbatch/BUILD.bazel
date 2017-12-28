@@ -17,5 +17,6 @@ go_test(
         "errbatch_test.go",
     ],
     importpath = "github.com/fishy/fsdb/errbatch_test",
+    size = "small",
     deps = [":go_default_library"],
 )
