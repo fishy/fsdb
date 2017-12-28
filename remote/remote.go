@@ -263,11 +263,11 @@ func (db *remoteDB) scanLoop(ctx context.Context) {
 				return true
 			}
 		},
-		func(err error) bool {
-			// Most I/O errors here are just caused by race conditions,
-			// safe to log and ignore.
+		func(path string, err error) bool {
+			// Most I/O errors here are just not exist errors caused by race
+			// conditions, log if it's not not exist error and ignore.
 			if logger != nil && !os.IsNotExist(err) {
-				logger.Printf("ScanKeys reported error: %v", err)
+				logger.Printf("ScanKeys reported error on %s: %v", path, err)
 			}
 			return true
 		},

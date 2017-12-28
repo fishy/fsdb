@@ -206,13 +206,13 @@ func (db *impl) ScanKeys(keyFunc fsdb.KeyFunc, errFunc fsdb.ErrFunc) error {
 		db.opts.GetRootDataDir(),
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				if errFunc(err) {
+				if errFunc(path, err) {
 					return filepath.SkipDir
 				}
 				return err
 			}
 			if info.IsDir() {
-				// Remove empty directories.
+				// Try remove empty directories.
 				//
 				// It's safe because calling os.Remove on a directory will only work
 				// if it's empty, which is exactly what we want.
@@ -226,7 +226,7 @@ func (db *impl) ScanKeys(keyFunc fsdb.KeyFunc, errFunc fsdb.ErrFunc) error {
 			if filepath.Base(path) == KeyFilename {
 				key, err := readKey(path)
 				if err != nil {
-					if errFunc(err) {
+					if errFunc(path, err) {
 						return filepath.SkipDir
 					}
 					return err
