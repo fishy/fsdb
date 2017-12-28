@@ -105,41 +105,6 @@ func TestChangeCompression(t *testing.T) {
 	testReadEmpty(t, gzipDb, key)
 }
 
-func TestDirs(t *testing.T) {
-	root, err := ioutil.TempDir("", "fsdb_")
-	if err != nil {
-		t.Fatalf("failed to get tmp dir: %v", err)
-	}
-	defer os.RemoveAll(root)
-	opts := local.NewDefaultOptions(root)
-	db := local.Open(opts)
-
-	expect := opts.GetDataDir()
-	actual := db.GetRootDataDir()
-	if expect != actual {
-		t.Errorf("GetRootDataDir() expected %q, got %q", expect, actual)
-	}
-
-	expect = opts.GetTempDir()
-	actual, err = db.GetTempDir("")
-	if err != nil {
-		t.Fatalf("GetTempDir() failed: %v", err)
-	}
-	if !strings.HasSuffix(actual, local.PathSeparator) {
-		t.Errorf(
-			"GetTempDir() result should end with %s, got %q",
-			local.PathSeparator,
-			actual,
-		)
-	}
-	if !strings.HasPrefix(actual, expect) {
-		t.Errorf("GetTempDir() should be under %q, got %q", expect, actual)
-	}
-	if _, err := os.Lstat(actual); err != nil {
-		t.Errorf("%q should exists, got: %v", actual, err)
-	}
-}
-
 func TestScan(t *testing.T) {
 	root, err := ioutil.TempDir("", "fsdb_")
 	if err != nil {

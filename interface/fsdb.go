@@ -33,19 +33,6 @@ type FSDB interface {
 type Local interface {
 	FSDB
 
-	// GetRootDataDir returns the root data directory of the implementation.
-	//
-	// It should be guaranteed to end with os.PathSeparator.
-	GetRootDataDir() string
-
-	// GetTempDir returns a temporary directory that's on the same file system of
-	// the data directory.
-	//
-	// It should be guaranteed to exist, accessible and end with os.PathSeparator.
-	//
-	// It's the caller's responsibility to delete the directory after use.
-	GetTempDir(prefix string) (string, error)
-
 	// ScanKeys scans all the keys locally.
 	//
 	// This function would be heavy on IO and takes a long time. Use with caution.

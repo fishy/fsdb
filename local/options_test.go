@@ -24,28 +24,28 @@ func TestOptions(t *testing.T) {
 
 			opts.SetDataDir("data2")
 			expect = "/foobar" + local.PathSeparator + "data2" + local.PathSeparator
-			actual = opts.GetDataDir()
+			actual = opts.GetRootDataDir()
 			if expect != actual {
 				t.Errorf("data dir expected %q, got %q", expect, actual)
 			}
 
 			opts.SetDataDir("data2" + local.PathSeparator)
 			expect = "/foobar" + local.PathSeparator + "data2" + local.PathSeparator
-			actual = opts.GetDataDir()
+			actual = opts.GetRootDataDir()
 			if expect != actual {
 				t.Errorf("data dir expected %q, got %q", expect, actual)
 			}
 
 			opts.SetTempDir("tmp")
 			expect = "/foobar" + local.PathSeparator + "tmp" + local.PathSeparator
-			actual = opts.GetTempDir()
+			actual = opts.GetRootTempDir()
 			if expect != actual {
 				t.Errorf("data dir expected %q, got %q", expect, actual)
 			}
 
 			opts.SetTempDir("tmp" + local.PathSeparator)
 			expect = "/foobar" + local.PathSeparator + "tmp" + local.PathSeparator
-			actual = opts.GetTempDir()
+			actual = opts.GetRootTempDir()
 			if expect != actual {
 				t.Errorf("data dir expected %q, got %q", expect, actual)
 			}

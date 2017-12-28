@@ -105,7 +105,7 @@ func (db *impl) Write(key fsdb.Key, data io.Reader) (err error) {
 			return err
 		}
 	}
-	tmpdir, err := db.GetTempDir(tempDirPrefix)
+	tmpdir, err := db.getTempDir()
 	if err != nil {
 		return err
 	}
@@ -201,25 +201,9 @@ func (db *impl) Delete(key fsdb.Key) error {
 	return os.RemoveAll(dir)
 }
 
-func (db *impl) GetRootDataDir() string {
-	return db.opts.GetDataDir()
-}
-
-func (db *impl) GetTempDir(prefix string) (dir string, err error) {
-	root := db.opts.GetTempDir()
-	if err = os.MkdirAll(root, tempDirMode); err != nil && !os.IsExist(err) {
-		return
-	}
-	dir, err = ioutil.TempDir(db.opts.GetTempDir(), prefix)
-	if !strings.HasSuffix(dir, PathSeparator) {
-		dir += PathSeparator
-	}
-	return
-}
-
 func (db *impl) ScanKeys(keyFunc fsdb.KeyFunc, errFunc fsdb.ErrFunc) error {
 	if err := filepath.Walk(
-		db.GetRootDataDir(),
+		db.opts.GetRootDataDir(),
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				if errFunc(err) {
@@ -260,6 +244,22 @@ func (db *impl) ScanKeys(keyFunc fsdb.KeyFunc, errFunc fsdb.ErrFunc) error {
 	return nil
 }
 
+// getTempDir returns a temp directory ready to use.
+func (db *impl) getTempDir() (dir string, err error) {
+	root := db.opts.GetRootTempDir()
+	if err = os.MkdirAll(root, tempDirMode); err != nil && !os.IsExist(err) {
+		return
+	}
+	dir, err = ioutil.TempDir(root, tempDirPrefix)
+	if !strings.HasSuffix(dir, PathSeparator) {
+		dir += PathSeparator
+	}
+	return
+}
+
+// checkKeyCollision checks for key collision.
+//
+// It returns a KeyCollisionError if detected.
 func checkKeyCollision(key fsdb.Key, path string) error {
 	old, err := readKey(path)
 	if err != nil {
@@ -274,6 +274,7 @@ func checkKeyCollision(key fsdb.Key, path string) error {
 	}
 }
 
+// readKey reads a key from the giving path.
 func readKey(path string) (fsdb.Key, error) {
 	file, err := os.Open(path)
 	if err != nil {

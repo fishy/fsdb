@@ -35,13 +35,13 @@ var DefaultHashFunc = sha512.New512_224
 
 // Options defines a read only view of options used by local fsdb.
 type Options interface {
-	// GetDataDir returns the full path of the root data directory,
+	// GetRootDataDir returns the full path of the root data directory,
 	// guaranteed to end with PathSeparator.
-	GetDataDir() string
+	GetRootDataDir() string
 
-	// GetDataDir returns the full path of the root temporary directory,
+	// GetRootTempDir returns the full path of the root temporary directory,
 	// guaranteed to end with PathSeparator.
-	GetTempDir() string
+	GetRootTempDir() string
 
 	// GetHashFunc returns the hash function used in keys.
 	GetHashFunc() func() hash.Hash
@@ -116,11 +116,11 @@ func NewDefaultOptions(root string) OptionsBuilder {
 	}
 }
 
-func (opts *options) GetDataDir() string {
+func (opts *options) GetRootDataDir() string {
 	return opts.root + opts.data
 }
 
-func (opts *options) GetTempDir() string {
+func (opts *options) GetRootTempDir() string {
 	return opts.root + opts.tmp
 }
 
@@ -132,7 +132,7 @@ func (opts *options) GetDirForKey(key fsdb.Key) string {
 	h := opts.GetHashFunc()()
 	h.Write(key)
 	hashString := hex.EncodeToString(h.Sum([]byte{}))
-	path := opts.GetDataDir()
+	path := opts.GetRootDataDir()
 	for i := 0; i < opts.dirLevel; i++ {
 		path += hashString[:charsPerLevel]
 		path += PathSeparator
