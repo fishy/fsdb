@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -176,45 +175,23 @@ func (db *remoteDB) uploadKey(key fsdb.Key) error {
 }
 
 func (db *remoteDB) startScanLoop(ctx context.Context) {
-	ticker := time.NewTicker(db.opts.GetUploadDelay())
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			db.scanLoop(ctx)
-		}
-	}
-}
-
-func (db *remoteDB) scanLoop(ctx context.Context) {
 	n := db.opts.GetUploadThreadNum()
 	logger := db.opts.GetLogger()
-	keyChan := make(chan fsdb.Key, 0)
+	keys := make(chan fsdb.Key, 0)
 
-	scanned := initAtomicInt64()
-	skipped := initAtomicInt64()
-	uploaded := initAtomicInt64()
-	failed := initAtomicInt64()
-
-	var wg sync.WaitGroup
-	wg.Add(n)
-
-	workerCtx, cancel := context.WithCancel(ctx)
+	scanned := new(int64)
+	skipped := new(int64)
+	uploaded := new(int64)
+	failed := new(int64)
 
 	// Workers
 	for i := 0; i < n; i++ {
-		go func(ctx context.Context, keys chan fsdb.Key) {
-			defer wg.Done()
+		go func() {
 			for {
 				select {
 				case <-ctx.Done():
 					return
-				case key, more := <-keys:
-					if !more {
-						return
-					}
+				case key := <-keys:
 					atomic.AddInt64(scanned, 1)
 					if db.opts.SkipKey(key) {
 						atomic.AddInt64(skipped, 1)
@@ -232,57 +209,61 @@ func (db *remoteDB) scanLoop(ctx context.Context) {
 					}
 				}
 			}
-		}(workerCtx, keyChan)
+		}()
 	}
+	ticker := time.NewTicker(db.opts.GetUploadDelay())
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			atomic.StoreInt64(scanned, 0)
+			atomic.StoreInt64(skipped, 0)
+			atomic.StoreInt64(uploaded, 0)
+			atomic.StoreInt64(failed, 0)
 
-	started := time.Now()
+			started := time.Now()
 
-	defer func() {
-		close(keyChan)
-		wg.Wait()
-		if logger != nil {
-			logger.Printf(
-				"took %v, scanned %d, skipped %d, uploaded %d, failed %d",
-				time.Now().Sub(started),
-				atomic.LoadInt64(scanned),
-				atomic.LoadInt64(skipped),
-				atomic.LoadInt64(uploaded),
-				atomic.LoadInt64(failed),
-			)
-		}
-		cancel()
-	}()
-
-	if err := db.local.ScanKeys(
-		func(key fsdb.Key) bool {
-			select {
-			case <-ctx.Done():
-				return false
-			default:
-				keyChan <- key
-				return true
+			if err := db.local.ScanKeys(
+				func(key fsdb.Key) bool {
+					select {
+					case <-ctx.Done():
+						return false
+					default:
+						keys <- key
+						return true
+					}
+				},
+				func(path string, err error) bool {
+					// Most I/O errors here are just not exist errors caused by race
+					// conditions, log if it's not not exist error and ignore.
+					if logger != nil && !os.IsNotExist(err) {
+						logger.Printf("ScanKeys reported error on %s: %v", path, err)
+					}
+					return true
+				},
+			); err != nil {
+				if logger != nil {
+					logger.Printf("ScanKeys returned error: %v", err)
+				}
 			}
-		},
-		func(path string, err error) bool {
-			// Most I/O errors here are just not exist errors caused by race
-			// conditions, log if it's not not exist error and ignore.
-			if logger != nil && !os.IsNotExist(err) {
-				logger.Printf("ScanKeys reported error on %s: %v", path, err)
+
+			if logger != nil {
+				// The skipped/uploaded/failed value could have a offset less than
+				// worker number, as when we print this log the workers are likely not
+				// finished with the keys yet.
+				logger.Printf(
+					"took %v, scanned %d, skipped %d, uploaded %d, failed %d",
+					time.Now().Sub(started),
+					atomic.LoadInt64(scanned),
+					atomic.LoadInt64(skipped),
+					atomic.LoadInt64(uploaded),
+					atomic.LoadInt64(failed),
+				)
 			}
-			return true
-		},
-	); err != nil {
-		if logger != nil {
-			logger.Printf("ScanKeys returned error: %v", err)
 		}
-		cancel()
 	}
-}
-
-func initAtomicInt64() *int64 {
-	ret := new(int64)
-	atomic.StoreInt64(ret, 0)
-	return ret
 }
 
 func gzipData(data io.Reader) (io.Reader, error) {
