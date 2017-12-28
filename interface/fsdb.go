@@ -44,7 +44,7 @@ type Local interface {
 	// It should be guaranteed to exist, accessible and end with os.PathSeparator.
 	//
 	// It's the caller's responsibility to delete the directory after use.
-	GetTempDir() (string, error)
+	GetTempDir(prefix string) (string, error)
 
 	// ScanKeys scans all the keys locally.
 	//

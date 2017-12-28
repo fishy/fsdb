@@ -3,13 +3,14 @@ package local_test
 import (
 	"bytes"
 	"compress/gzip"
-	"crypto/rand"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fishy/fsdb/interface"
 	"github.com/fishy/fsdb/local"
@@ -28,7 +29,10 @@ Excepteur sint occaecat cupidatat non proident,
 sunt in culpa qui officia deserunt mollit anim id est laborum.`
 
 func TestReadWriteDelete(t *testing.T) {
-	root := os.TempDir() + local.PathSeparator + "fsdb"
+	root, err := ioutil.TempDir("", "fsdb_")
+	if err != nil {
+		t.Fatalf("failed to get tmp dir: %v", err)
+	}
 	defer os.RemoveAll(root)
 	opts := local.NewDefaultOptions(root).SetUseGzip(false).SetUseSnappy(false)
 	db := local.Open(opts)
@@ -51,7 +55,10 @@ func TestReadWriteDelete(t *testing.T) {
 }
 
 func TestSnappy(t *testing.T) {
-	root := os.TempDir() + local.PathSeparator + "fsdb"
+	root, err := ioutil.TempDir("", "fsdb_")
+	if err != nil {
+		t.Fatalf("failed to get tmp dir: %v", err)
+	}
 	defer os.RemoveAll(root)
 	opts := local.NewDefaultOptions(root).SetUseSnappy(true)
 	db := local.Open(opts)
@@ -74,7 +81,10 @@ func TestSnappy(t *testing.T) {
 }
 
 func TestGzip(t *testing.T) {
-	root := os.TempDir() + local.PathSeparator + "fsdb"
+	root, err := ioutil.TempDir("", "fsdb_")
+	if err != nil {
+		t.Fatalf("failed to get tmp dir: %v", err)
+	}
 	defer os.RemoveAll(root)
 	opts := local.NewDefaultOptions(root).SetUseGzip(true)
 	db := local.Open(opts)
@@ -97,7 +107,10 @@ func TestGzip(t *testing.T) {
 }
 
 func TestChangeCompression(t *testing.T) {
-	root := os.TempDir() + local.PathSeparator + "fsdb"
+	root, err := ioutil.TempDir("", "fsdb_")
+	if err != nil {
+		t.Fatalf("failed to get tmp dir: %v", err)
+	}
 	defer os.RemoveAll(root)
 	snappyOpts := local.NewDefaultOptions(root).SetUseSnappy(true)
 	snappyDb := local.Open(snappyOpts)
@@ -121,7 +134,10 @@ func TestChangeCompression(t *testing.T) {
 }
 
 func TestDirs(t *testing.T) {
-	root := os.TempDir() + local.PathSeparator + "fsdb"
+	root, err := ioutil.TempDir("", "fsdb_")
+	if err != nil {
+		t.Fatalf("failed to get tmp dir: %v", err)
+	}
 	defer os.RemoveAll(root)
 	opts := local.NewDefaultOptions(root)
 	db := local.Open(opts)
@@ -133,9 +149,16 @@ func TestDirs(t *testing.T) {
 	}
 
 	expect = opts.GetTempDir()
-	actual, err := db.GetTempDir()
+	actual, err = db.GetTempDir("")
 	if err != nil {
 		t.Fatalf("GetTempDir() failed: %v", err)
+	}
+	if !strings.HasSuffix(actual, local.PathSeparator) {
+		t.Errorf(
+			"GetTempDir() result should end with %s, got %q",
+			local.PathSeparator,
+			actual,
+		)
 	}
 	if !strings.HasPrefix(actual, expect) {
 		t.Errorf("GetTempDir() should be under %q, got %q", expect, actual)
@@ -146,11 +169,12 @@ func TestDirs(t *testing.T) {
 }
 
 func TestScan(t *testing.T) {
-	root := os.TempDir() + local.PathSeparator + "fsdb"
+	root, err := ioutil.TempDir("", "fsdb_")
+	if err != nil {
+		t.Fatalf("failed to get tmp dir: %v", err)
+	}
 	defer os.RemoveAll(root)
 	opts := local.NewDefaultOptions(root)
-	// Make sure the first scan won't fail
-	os.MkdirAll(opts.GetDataDir(), local.FileModeForDirs)
 	db := local.Open(opts)
 
 	keys := make(map[string]bool)
@@ -160,7 +184,7 @@ func TestScan(t *testing.T) {
 			return ret
 		}
 	}
-	if err := db.ScanKeys(keyFunc(true), nil); err != nil {
+	if err := db.ScanKeys(keyFunc(true), fsdb.IgnoreAllErrFunc); err != nil {
 		t.Fatalf("ScanKeys failed: %v", err)
 	}
 	if len(keys) != 0 {
@@ -194,8 +218,14 @@ func TestScan(t *testing.T) {
 }
 
 func BenchmarkReadWrite(b *testing.B) {
-	root := "_fsdb_tmp"
-	key := fsdb.Key("foo")
+	root, err := ioutil.TempDir(".", "_fsdb_bench_test_")
+	if err != nil {
+		b.Fatalf("failed to get tmp dir: %v", err)
+	}
+	defer os.RemoveAll(root)
+
+	keySize := 12
+	r := rand.New(rand.NewSource(time.Now().Unix()))
 
 	var benchmarkSizes = map[string]int{
 		"1K":   1024,
@@ -217,29 +247,22 @@ func BenchmarkReadWrite(b *testing.B) {
 		b.Run(
 			label,
 			func(b *testing.B) {
-				randReader := io.LimitReader(rand.Reader, int64(size))
-				content, err := ioutil.ReadAll(randReader)
-				if err != nil {
-					b.Fatalf("Generate content failed: %v", err)
-				}
-				if len(content) != size {
-					b.Fatalf(
-						"Generate content failed, expected %d bytes, got %d",
-						size,
-						len(content),
-					)
-				}
+				content := randomBytes(b, r, size)
 
 				for label, opts := range options {
 					b.Run(
 						label,
 						func(b *testing.B) {
-							defer os.RemoveAll(root)
+							os.RemoveAll(root)
 							db := local.Open(opts)
+							keys := make([]fsdb.Key, 0)
 							b.Run(
 								"write",
 								func(b *testing.B) {
 									for i := 0; i < b.N; i++ {
+										key := fsdb.Key(randomBytes(b, r, keySize))
+										keys = append(keys, key)
+
 										err := db.Write(key, bytes.NewReader(content))
 										if err != nil {
 											b.Fatalf("Write failed: %v", err)
@@ -251,6 +274,7 @@ func BenchmarkReadWrite(b *testing.B) {
 								"read",
 								func(b *testing.B) {
 									for i := 0; i < b.N; i++ {
+										key := keys[r.Int31n(int32(len(keys)))]
 										reader, err := db.Read(key)
 										if err != nil {
 											b.Fatalf("Read failed: %v", err)
@@ -265,6 +289,24 @@ func BenchmarkReadWrite(b *testing.B) {
 			},
 		)
 	}
+}
+
+func randomBytes(b *testing.B, r *rand.Rand, size int) []byte {
+	b.Helper()
+
+	reader := io.LimitReader(r, int64(size))
+	content, err := ioutil.ReadAll(reader)
+	if err != nil {
+		b.Fatalf("Generate content failed: %v", err)
+	}
+	if len(content) != size {
+		b.Fatalf(
+			"Generate content failed, expected %d bytes, got %d",
+			size,
+			len(content),
+		)
+	}
+	return content
 }
 
 func testDeleteEmpty(t *testing.T, db fsdb.FSDB, key fsdb.Key) {

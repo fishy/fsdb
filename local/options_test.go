@@ -157,7 +157,7 @@ func TestOptions(t *testing.T) {
 		"hash-reentrant",
 		func(t *testing.T) {
 			if testing.Short() {
-				t.Skip("skipping test in short mode.")
+				t.Skip("skipping test in short mode")
 			}
 
 			calcHash := func(h hash.Hash, key fsdb.Key, sleep time.Duration) string {
@@ -179,7 +179,7 @@ func TestOptions(t *testing.T) {
 			opts.SetHashFunc(sha512.New512_224)
 			var wg sync.WaitGroup
 			wg.Add(len(keys))
-			sleep := time.Second * 3
+			sleep := time.Millisecond * 100
 			for i, key := range keys {
 				go func(key fsdb.Key, expect string) {
 					defer wg.Done()

@@ -3,12 +3,11 @@ package local
 import (
 	"bytes"
 	"compress/gzip"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/golang/snappy"
 
@@ -20,6 +19,9 @@ import (
 var _ fsdb.Local = new(impl)
 var _ error = new(KeyCollisionError)
 
+const tempDirPrefix = "fsdb_"
+const tempDirMode os.FileMode = 0700
+
 // Filenames used under the entry directory.
 const (
 	KeyFilename = "key"
@@ -27,14 +29,6 @@ const (
 	DataFilename       = "data"
 	GzipDataFilename   = "data.gz"
 	SnappyDataFilename = "data.snappy"
-)
-
-// Temporary directory related constants.
-var (
-	MaxTempDirRetries = 3
-	BytesInTempDir    = 8
-
-	TempDirFileMode os.FileMode = 0700
 )
 
 // Permissions for files and directories.
@@ -119,7 +113,7 @@ func (db *impl) Write(key fsdb.Key, data io.Reader) (err error) {
 			return err
 		}
 	}
-	tmpdir, err := db.GetTempDir()
+	tmpdir, err := db.GetTempDir(tempDirPrefix)
 	if err != nil {
 		return err
 	}
@@ -241,27 +235,16 @@ func (db *impl) GetRootDataDir() string {
 	return db.opts.GetDataDir()
 }
 
-func (db *impl) GetTempDir() (string, error) {
+func (db *impl) GetTempDir(prefix string) (dir string, err error) {
 	root := db.opts.GetTempDir()
-	for i := 0; i < MaxTempDirRetries; i++ {
-		buf := make([]byte, BytesInTempDir)
-		if _, err := rand.Read(buf); err != nil {
-			continue
-		}
-		tmpdir := root + hex.EncodeToString(buf) + PathSeparator
-		if _, err := os.Lstat(tmpdir); err == nil {
-			continue
-		}
-		if err := os.MkdirAll(tmpdir, TempDirFileMode); err != nil {
-			continue
-		}
-		return tmpdir, nil
+	if err = os.MkdirAll(root, tempDirMode); err != nil && !os.IsExist(err) {
+		return
 	}
-	return "", fmt.Errorf(
-		"failed to get a temp dir under %q after %d tries",
-		root,
-		MaxTempDirRetries,
-	)
+	dir, err = ioutil.TempDir(db.opts.GetTempDir(), prefix)
+	if !strings.HasSuffix(dir, PathSeparator) {
+		dir += PathSeparator
+	}
+	return
 }
 
 func (db *impl) ScanKeys(
@@ -283,7 +266,7 @@ func scanKeys(
 			return false, err
 		}
 	}
-	infos, err := dir.Readdir(0)
+	infos, err := dir.Readdir(-1)
 	dir.Close()
 	if err != nil {
 		if errFunc == nil || !errFunc(err) {
@@ -292,7 +275,6 @@ func scanKeys(
 	}
 	if len(infos) == 0 && err == nil {
 		// Empty direcoty, do some cleanup here.
-		dir.Close()
 		os.Remove(root)
 		return true, nil
 	}
