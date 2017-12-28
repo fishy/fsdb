@@ -25,7 +25,6 @@ const (
 
 	DefaultUseGzip   = false
 	DefaultGzipLevel = gzip.DefaultCompression
-	DefaultUseSnappy = false
 )
 
 // DefaultHashFunc is the default hash function, which is SHA-512/224.
@@ -54,14 +53,12 @@ type Options interface {
 
 	GetUseGzip() bool
 	GetGzipLevel() int
-
-	GetUseSnappy() bool
 }
 
 // OptionsBuilder defines a read-write view of options used by local fsdb.
 //
-// Gzip and Snappy related options are safe to change on an existing FSDB
-// system. Changing other options will break the existing FSDB system.
+// Gzip related options are safe to change on an existing FSDB system.
+// Changing other options will break the existing FSDB system.
 type OptionsBuilder interface {
 	Options
 
@@ -87,18 +84,10 @@ type OptionsBuilder interface {
 	SetDirLevel(level int) OptionsBuilder
 
 	// SetUseGzip sets whether to use gzip for storage.
-	//
-	// If gzip is true, this function will also set snappy to false.
 	SetUseGzip(gzip bool) OptionsBuilder
 
 	// SetGzipLevel sets the level used in gzip compression.
 	SetGzipLevel(level int) OptionsBuilder
-
-	// SetUseSnappy sets whether to use snappy for storage.
-	// See https://google.github.io/snappy/ for details.
-	//
-	// If snappy is true, this function will also set gzip to false.
-	SetUseSnappy(snappy bool) OptionsBuilder
 }
 
 type options struct {
@@ -109,7 +98,6 @@ type options struct {
 	dirLevel  int
 	useGzip   bool
 	gzipLevel int
-	useSnappy bool
 }
 
 // NewDefaultOptions creates an OptionsBuilder with default options.
@@ -125,7 +113,6 @@ func NewDefaultOptions(root string) OptionsBuilder {
 		dirLevel:  DefaultDirLevel,
 		useGzip:   DefaultUseGzip,
 		gzipLevel: DefaultGzipLevel,
-		useSnappy: DefaultUseSnappy,
 	}
 }
 
@@ -169,10 +156,6 @@ func (opts *options) GetGzipLevel() int {
 	return opts.gzipLevel
 }
 
-func (opts *options) GetUseSnappy() bool {
-	return opts.useSnappy
-}
-
 func (opts *options) Build() Options {
 	return opts
 }
@@ -204,22 +187,11 @@ func (opts *options) SetDirLevel(level int) OptionsBuilder {
 }
 
 func (opts *options) SetUseGzip(gzip bool) OptionsBuilder {
-	if gzip {
-		opts.useSnappy = false
-	}
 	opts.useGzip = gzip
 	return opts
 }
 
 func (opts *options) SetGzipLevel(level int) OptionsBuilder {
 	opts.gzipLevel = level
-	return opts
-}
-
-func (opts *options) SetUseSnappy(snappy bool) OptionsBuilder {
-	if snappy {
-		opts.useGzip = false
-	}
-	opts.useSnappy = snappy
 	return opts
 }

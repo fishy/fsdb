@@ -34,10 +34,8 @@
 //
 // Compression
 //
-// This implementation supports the following compression options:
-//     - no compression
-//     - gzip (configurable levels)
-//     - snappy (https://google.github.io/snappy/)
+// This implementation supports optional gzip compression with configurable
+// compression levels.
 //
 // If you changed the compression option on a non-empty local fsdb,
 // the old data is still readable and the new data will be stored per new
@@ -46,9 +44,14 @@
 // Run
 //     go test -bench .
 // will show you the read and write benchmark results of different compression
-// options of the filesystem on
-//     $PWD/_fsdb_tmp/
-// for different typical sizes of random binary data.
+// options of the filesystem under current directory for different typical sizes
+// of random binary data.
+// Please note that the write time includes the time used to generate the random
+// binary data.
+// Also note that the read time could be much smaller than reality when the
+// corresponding write benchmark test only ran for a few times (large size),
+// as those read benchmark tests will read from the same file over and over
+// again, and most filesystem will optimize for such use case.
 //
 // You should choose your compression options based on your benchmark result,
 // typical data size and estimated read/write operation ratio.
@@ -57,61 +60,50 @@
 //     $ go test -bench .
 //     goos: linux
 //     goarch: amd64
-//     pkg: github.com/fishy/fsdb/local
-//     BenchmarkReadWrite/256M/snappy/write-2         	       2	2644709778 ns/op
-//     BenchmarkReadWrite/256M/snappy/read-2          	   20000	     71461 ns/op
-//     BenchmarkReadWrite/256M/gzip-min/write-2       	       2	2524391920 ns/op
-//     BenchmarkReadWrite/256M/gzip-min/read-2        	   50000	     28098 ns/op
-//     BenchmarkReadWrite/256M/gzip-default/write-2   	       2	2933841783 ns/op
-//     BenchmarkReadWrite/256M/gzip-default/read-2    	   50000	     27950 ns/op
-//     BenchmarkReadWrite/256M/gzip-max/write-2       	       2	2728275678 ns/op
-//     BenchmarkReadWrite/256M/gzip-max/read-2        	   50000	     27749 ns/op
-//     BenchmarkReadWrite/256M/nocompression/write-2  	       2	2694980754 ns/op
-//     BenchmarkReadWrite/256M/nocompression/read-2   	   50000	     28001 ns/op
-//     BenchmarkReadWrite/1K/gzip-default/write-2     	    5000	    277333 ns/op
-//     BenchmarkReadWrite/1K/gzip-default/read-2      	   50000	     29347 ns/op
-//     BenchmarkReadWrite/1K/gzip-max/write-2         	    5000	    279393 ns/op
-//     BenchmarkReadWrite/1K/gzip-max/read-2          	   50000	     29365 ns/op
-//     BenchmarkReadWrite/1K/nocompression/write-2    	    5000	    300942 ns/op
-//     BenchmarkReadWrite/1K/nocompression/read-2     	   50000	     29854 ns/op
-//     BenchmarkReadWrite/1K/snappy/write-2           	    3000	    371906 ns/op
-//     BenchmarkReadWrite/1K/snappy/read-2            	   20000	     81126 ns/op
-//     BenchmarkReadWrite/1K/gzip-min/write-2         	    5000	    278225 ns/op
-//     BenchmarkReadWrite/1K/gzip-min/read-2          	   50000	     29681 ns/op
-//     BenchmarkReadWrite/10K/gzip-min/write-2        	    5000	    299979 ns/op
-//     BenchmarkReadWrite/10K/gzip-min/read-2         	   50000	     28481 ns/op
-//     BenchmarkReadWrite/10K/gzip-default/write-2    	    5000	    270725 ns/op
-//     BenchmarkReadWrite/10K/gzip-default/read-2     	   50000	     28427 ns/op
-//     BenchmarkReadWrite/10K/gzip-max/write-2        	    5000	    289610 ns/op
-//     BenchmarkReadWrite/10K/gzip-max/read-2         	   50000	     28708 ns/op
-//     BenchmarkReadWrite/10K/nocompression/write-2   	    5000	    290857 ns/op
-//     BenchmarkReadWrite/10K/nocompression/read-2    	   50000	     29612 ns/op
-//     BenchmarkReadWrite/10K/snappy/write-2          	    5000	    408231 ns/op
-//     BenchmarkReadWrite/10K/snappy/read-2           	   20000	     80573 ns/op
-//     BenchmarkReadWrite/1M/gzip-max/write-2         	    1000	   1498500 ns/op
-//     BenchmarkReadWrite/1M/gzip-max/read-2          	   50000	     29521 ns/op
-//     BenchmarkReadWrite/1M/nocompression/write-2    	    1000	   1540354 ns/op
-//     BenchmarkReadWrite/1M/nocompression/read-2     	   50000	     29962 ns/op
-//     BenchmarkReadWrite/1M/snappy/write-2           	    1000	   2226409 ns/op
-//     BenchmarkReadWrite/1M/snappy/read-2            	   20000	     81671 ns/op
-//     BenchmarkReadWrite/1M/gzip-min/write-2         	    1000	   1615656 ns/op
-//     BenchmarkReadWrite/1M/gzip-min/read-2          	   50000	     30307 ns/op
-//     BenchmarkReadWrite/1M/gzip-default/write-2     	    1000	   1548937 ns/op
-//     BenchmarkReadWrite/1M/gzip-default/read-2      	   50000	     29673 ns/op
-//     BenchmarkReadWrite/10M/snappy/write-2          	     100	  17206851 ns/op
-//     BenchmarkReadWrite/10M/snappy/read-2           	   20000	     75328 ns/op
-//     BenchmarkReadWrite/10M/gzip-min/write-2        	     100	  12804069 ns/op
-//     BenchmarkReadWrite/10M/gzip-min/read-2         	   50000	     28253 ns/op
-//     BenchmarkReadWrite/10M/gzip-default/write-2    	     100	  12490179 ns/op
-//     BenchmarkReadWrite/10M/gzip-default/read-2     	   50000	     28300 ns/op
-//     BenchmarkReadWrite/10M/gzip-max/write-2        	     100	  12511874 ns/op
-//     BenchmarkReadWrite/10M/gzip-max/read-2         	   50000	     28740 ns/op
-//     BenchmarkReadWrite/10M/nocompression/write-2   	     100	  12571074 ns/op
-//     BenchmarkReadWrite/10M/nocompression/read-2    	   50000	     27684 ns/op
+//     BenchmarkReadWrite/10K/gzip-default/write-2   	    5000	    424289 ns/op
+//     BenchmarkReadWrite/10K/gzip-default/read-2    	   50000	     31666 ns/op
+//     BenchmarkReadWrite/10K/gzip-max/write-2       	    5000	    406294 ns/op
+//     BenchmarkReadWrite/10K/gzip-max/read-2        	   50000	     32462 ns/op
+//     BenchmarkReadWrite/10K/nocompression/write-2  	    5000	    466215 ns/op
+//     BenchmarkReadWrite/10K/nocompression/read-2   	   50000	     31562 ns/op
+//     BenchmarkReadWrite/10K/gzip-min/write-2       	    5000	    452478 ns/op
+//     BenchmarkReadWrite/10K/gzip-min/read-2        	   50000	     30205 ns/op
+//     BenchmarkReadWrite/1M/gzip-max/write-2        	    2000	  12568642 ns/op
+//     BenchmarkReadWrite/1M/gzip-max/read-2         	    1000	   1101386 ns/op
+//     BenchmarkReadWrite/1M/nocompression/write-2   	    1000	  11662001 ns/op
+//     BenchmarkReadWrite/1M/nocompression/read-2    	   50000	     31565 ns/op
+//     BenchmarkReadWrite/1M/gzip-min/write-2        	    1000	  10113306 ns/op
+//     BenchmarkReadWrite/1M/gzip-min/read-2         	   50000	     30968 ns/op
+//     BenchmarkReadWrite/1M/gzip-default/write-2    	    2000	  12757153 ns/op
+//     BenchmarkReadWrite/1M/gzip-default/read-2     	    2000	    800529 ns/op
+//     BenchmarkReadWrite/10M/gzip-default/write-2   	     100	  82405077 ns/op
+//     BenchmarkReadWrite/10M/gzip-default/read-2    	   50000	     29945 ns/op
+//     BenchmarkReadWrite/10M/gzip-max/write-2       	     100	  82221152 ns/op
+//     BenchmarkReadWrite/10M/gzip-max/read-2        	   50000	     30059 ns/op
+//     BenchmarkReadWrite/10M/nocompression/write-2  	     100	  74676057 ns/op
+//     BenchmarkReadWrite/10M/nocompression/read-2   	   50000	     29943 ns/op
+//     BenchmarkReadWrite/10M/gzip-min/write-2       	     100	  77441153 ns/op
+//     BenchmarkReadWrite/10M/gzip-min/read-2        	   50000	     29468 ns/op
+//     BenchmarkReadWrite/256M/nocompression/write-2 	       1	1093422819 ns/op
+//     BenchmarkReadWrite/256M/nocompression/read-2  	   50000	     28690 ns/op
+//     BenchmarkReadWrite/256M/gzip-min/write-2      	       1	1006354251 ns/op
+//     BenchmarkReadWrite/256M/gzip-min/read-2       	   50000	     28624 ns/op
+//     BenchmarkReadWrite/256M/gzip-default/write-2  	       1	1081434172 ns/op
+//     BenchmarkReadWrite/256M/gzip-default/read-2   	   50000	     28835 ns/op
+//     BenchmarkReadWrite/256M/gzip-max/write-2      	       1	1098102178 ns/op
+//     BenchmarkReadWrite/256M/gzip-max/read-2       	   50000	     28541 ns/op
+//     BenchmarkReadWrite/1K/gzip-min/write-2        	    5000	    562206 ns/op
+//     BenchmarkReadWrite/1K/gzip-min/read-2         	   50000	     30493 ns/op
+//     BenchmarkReadWrite/1K/gzip-default/write-2    	    5000	    664398 ns/op
+//     BenchmarkReadWrite/1K/gzip-default/read-2     	   50000	     31062 ns/op
+//     BenchmarkReadWrite/1K/gzip-max/write-2        	    5000	    649059 ns/op
+//     BenchmarkReadWrite/1K/gzip-max/read-2         	   50000	     30319 ns/op
+//     BenchmarkReadWrite/1K/nocompression/write-2   	    5000	    657600 ns/op
+//     BenchmarkReadWrite/1K/nocompression/read-2    	   50000	     30951 ns/op
 //     PASS
-//     ok  	github.com/fishy/fsdb/local	115.508s
+//     ok  	github.com/fishy/fsdb/local	192.207s
 //
 // Other Notes
 //
-// Remember to set appropriate number of files limit on your filesystem.
+// Remember to set appropriate number of file number limit on your filesystem.
 package local

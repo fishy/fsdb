@@ -9,8 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/golang/snappy"
-
 	"github.com/fishy/fsdb/interface"
 	"github.com/fishy/fsdb/wrapreader"
 )
@@ -26,9 +24,8 @@ const tempDirMode os.FileMode = 0700
 const (
 	KeyFilename = "key"
 
-	DataFilename       = "data"
-	GzipDataFilename   = "data.gz"
-	SnappyDataFilename = "data.snappy"
+	DataFilename     = "data"
+	GzipDataFilename = "data.gz"
 )
 
 // Permissions for files and directories.
@@ -92,15 +89,6 @@ func (db *impl) Read(key fsdb.Key) (io.ReadCloser, error) {
 		return wrapreader.Wrap(reader, file), nil
 	}
 
-	dataFile = dir + SnappyDataFilename
-	if _, err := os.Lstat(dataFile); err == nil {
-		file, err := os.Open(dataFile)
-		if err != nil {
-			return nil, err
-		}
-		return wrapreader.Wrap(snappy.NewReader(file), file), nil
-	}
-
 	// Key file exists but there's no data file,
 	return nil, &fsdb.NoSuchKeyError{Key: key}
 }
@@ -138,25 +126,7 @@ func (db *impl) Write(key fsdb.Key, data io.Reader) (err error) {
 	// Write temp data file
 	var tmpDataFile string
 	var dataFile string
-	if db.opts.GetUseSnappy() {
-		tmpDataFile = tmpdir + SnappyDataFilename
-		dataFile = dir + SnappyDataFilename
-		if err = func() error {
-			f, err := createFile(tmpDataFile)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-			writer := snappy.NewBufferedWriter(f)
-			defer writer.Close()
-			if _, err = io.Copy(writer, data); err != nil {
-				return err
-			}
-			return nil
-		}(); err != nil {
-			return err
-		}
-	} else if db.opts.GetUseGzip() {
+	if db.opts.GetUseGzip() {
 		tmpDataFile = tmpdir + GzipDataFilename
 		dataFile = dir + GzipDataFilename
 		if err = func() error {
@@ -199,11 +169,7 @@ func (db *impl) Write(key fsdb.Key, data io.Reader) (err error) {
 	if err = os.MkdirAll(dir, FileModeForDirs); err != nil && !os.IsExist(err) {
 		return err
 	}
-	for _, file := range []string{
-		DataFilename,
-		SnappyDataFilename,
-		GzipDataFilename,
-	} {
+	for _, file := range []string{DataFilename, GzipDataFilename} {
 		if err = os.Remove(dir + file); err != nil && !os.IsNotExist(err) {
 			return err
 		}

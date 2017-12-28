@@ -34,33 +34,7 @@ func TestReadWriteDelete(t *testing.T) {
 		t.Fatalf("failed to get tmp dir: %v", err)
 	}
 	defer os.RemoveAll(root)
-	opts := local.NewDefaultOptions(root).SetUseGzip(false).SetUseSnappy(false)
-	db := local.Open(opts)
-
-	key := fsdb.Key("foo")
-	// Empty
-	testDeleteEmpty(t, db, key)
-	testReadEmpty(t, db, key)
-	// Write
-	testWrite(t, db, key, lorem)
-	testRead(t, db, key, lorem)
-	testRead(t, db, key, lorem)
-	// Overwrite
-	content := ""
-	testWrite(t, db, key, content)
-	testRead(t, db, key, content)
-	// Delete
-	testDelete(t, db, key)
-	testReadEmpty(t, db, key)
-}
-
-func TestSnappy(t *testing.T) {
-	root, err := ioutil.TempDir("", "fsdb_")
-	if err != nil {
-		t.Fatalf("failed to get tmp dir: %v", err)
-	}
-	defer os.RemoveAll(root)
-	opts := local.NewDefaultOptions(root).SetUseSnappy(true)
+	opts := local.NewDefaultOptions(root).SetUseGzip(false)
 	db := local.Open(opts)
 
 	key := fsdb.Key("foo")
@@ -112,25 +86,23 @@ func TestChangeCompression(t *testing.T) {
 		t.Fatalf("failed to get tmp dir: %v", err)
 	}
 	defer os.RemoveAll(root)
-	snappyOpts := local.NewDefaultOptions(root).SetUseSnappy(true)
-	snappyDb := local.Open(snappyOpts)
-
-	key := fsdb.Key("foo")
-	testWrite(t, snappyDb, key, lorem)
-	testRead(t, snappyDb, key, lorem)
-
 	gzipOpts := local.NewDefaultOptions(root).SetUseGzip(true)
 	gzipDb := local.Open(gzipOpts)
-	testRead(t, gzipDb, key, lorem)
-	content := ""
-	testWrite(t, gzipDb, key, content)
-	testRead(t, gzipDb, key, content)
 
-	opts := local.NewDefaultOptions(root).SetUseGzip(false).SetUseSnappy(false)
+	key := fsdb.Key("foo")
+	testWrite(t, gzipDb, key, lorem)
+	testRead(t, gzipDb, key, lorem)
+
+	opts := local.NewDefaultOptions(root).SetUseGzip(false)
 	db := local.Open(opts)
+	testRead(t, db, key, lorem)
+	content := ""
+	testWrite(t, db, key, content)
 	testRead(t, db, key, content)
-	testDelete(t, db, key)
-	testReadEmpty(t, db, key)
+
+	testRead(t, gzipDb, key, content)
+	testDelete(t, gzipDb, key)
+	testReadEmpty(t, gzipDb, key)
 }
 
 func TestDirs(t *testing.T) {
@@ -236,8 +208,7 @@ func BenchmarkReadWrite(b *testing.B) {
 	}
 
 	var options = map[string]local.Options{
-		"nocompression": local.NewDefaultOptions(root).SetUseGzip(false).SetUseSnappy(false),
-		"snappy":        local.NewDefaultOptions(root).SetUseSnappy(true),
+		"nocompression": local.NewDefaultOptions(root).SetUseGzip(false),
 		"gzip-min":      local.NewDefaultOptions(root).SetUseGzip(false).SetGzipLevel(gzip.BestSpeed),
 		"gzip-default":  local.NewDefaultOptions(root).SetUseGzip(false).SetGzipLevel(gzip.DefaultCompression),
 		"gzip-max":      local.NewDefaultOptions(root).SetUseGzip(false).SetGzipLevel(gzip.BestCompression),

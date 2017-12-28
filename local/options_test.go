@@ -18,32 +18,6 @@ func TestOptions(t *testing.T) {
 	opts := local.NewDefaultOptions(root)
 
 	t.Run(
-		"compression",
-		func(t *testing.T) {
-			opts.SetUseGzip(true)
-			if !opts.GetUseGzip() {
-				t.Error("gzip should be set to true")
-			}
-
-			opts.SetUseSnappy(true)
-			if !opts.GetUseSnappy() {
-				t.Error("snappy should be set to true")
-			}
-			if opts.GetUseGzip() {
-				t.Error("set snappy should disable gzip")
-			}
-
-			opts.SetUseGzip(true)
-			if !opts.GetUseGzip() {
-				t.Error("gzip should be set to true")
-			}
-			if opts.GetUseSnappy() {
-				t.Error("set gzip should disable snappy")
-			}
-		},
-	)
-
-	t.Run(
 		"dirs",
 		func(t *testing.T) {
 			var expect, actual string

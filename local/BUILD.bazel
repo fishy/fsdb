@@ -12,7 +12,6 @@ go_library(
     deps = [
         "//interface:go_default_library",
         "//wrapreader:go_default_library",
-        "@com_github_golang_snappy//:go_default_library",
     ],
 )
 
