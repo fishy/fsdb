@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "bucket.go",
+        "doc.go",
+        "mock.go",
+    ],
+    importpath = "github.com/fishy/fsdb/bucket",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//interface:go_default_library",
+        "//local:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["mock_test.go"],
+    embed = [":go_default_library"],
+    importpath = "github.com/fishy/fsdb/bucket",
+    deps = ["//interface:go_default_library"],
+)

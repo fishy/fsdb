@@ -1,0 +1,31 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "doc.go",
+        "local.go",
+        "options.go",
+    ],
+    importpath = "github.com/fishy/fsdb/local",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//interface:go_default_library",
+        "//wrapreader:go_default_library",
+        "@com_github_golang_snappy//:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_xtest",
+    srcs = [
+        "doc_test.go",
+        "local_test.go",
+        "options_test.go",
+    ],
+    importpath = "github.com/fishy/fsdb/local_test",
+    deps = [
+        ":go_default_library",
+        "//interface:go_default_library",
+    ],
+)
