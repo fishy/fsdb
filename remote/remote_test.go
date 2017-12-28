@@ -57,8 +57,8 @@ func TestRemote(t *testing.T) {
 		t.Skip("skipping test in short mode")
 	}
 
-	delay := time.Millisecond * 20
-	longer := time.Millisecond * 25
+	delay := time.Millisecond * 100
+	longer := time.Millisecond * 150
 
 	root, db := createRemoteDB(t)
 	defer os.RemoveAll(root)
@@ -122,7 +122,7 @@ func TestSkip(t *testing.T) {
 		t.Skip("skipping test in short mode")
 	}
 
-	delay := time.Millisecond * 20
+	delay := time.Millisecond * 100
 	longer := delay * 2
 
 	key1 := fsdb.Key("foo")
@@ -168,10 +168,10 @@ func TestSlowUpload(t *testing.T) {
 	// Write 6 keys, provide 4 threads to upload. After one upload cycle there
 	// should be 2 keys left locally.
 
-	delay := time.Millisecond * 20
+	delay := time.Millisecond * 100
 	// longer should be slightly larger than 2 * delay,
 	// as we need one delay before uploading and another delay for uploading.
-	longer := time.Millisecond * 45
+	longer := time.Millisecond * 250
 
 	keys := []fsdb.Key{
 		fsdb.Key("key0"),
@@ -216,12 +216,12 @@ func TestUploadRaceCondition(t *testing.T) {
 	// Write content1, overwrite with content2 during upload.
 	// Check read result after upload finishes.
 
-	delay := time.Millisecond * 20
+	delay := time.Millisecond * 100
 	// secondWrite should be between delay and 2 * delay
-	secondWrite := time.Millisecond * 25
+	secondWrite := time.Millisecond * 150
 	// readTime should be slightly larger than 2 * delay to make sure the upload
 	// finished.
-	readTime := time.Millisecond * 45
+	readTime := time.Millisecond * 250
 
 	key := fsdb.Key("key")
 	content1 := "foo"
@@ -261,8 +261,8 @@ func TestRemoteReadRaceCondition(t *testing.T) {
 	// Write content1, wait for upload.
 	// Overwrite with content2 during slow read. Check read result.
 
-	delay := time.Millisecond * 20
-	longer := time.Millisecond * 25
+	delay := time.Millisecond * 100
+	longer := time.Millisecond * 150
 	secondWrite := 2 * delay
 
 	key := fsdb.Key("key")
