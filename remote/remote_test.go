@@ -1,7 +1,9 @@
 package remote_test
 
 import (
+	"context"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"testing"
@@ -20,9 +22,14 @@ type dbCollection struct {
 	Opts   remote.OptionsBuilder
 }
 
+func (db *dbCollection) Open(ctx context.Context) {
+	db.DB = remote.Open(ctx, db.Local, db.Remote, db.Opts)
+}
+
 func TestLocal(t *testing.T) {
 	root, db := createRemoteDB(t)
 	defer os.RemoveAll(root)
+	db.Open(context.Background())
 
 	key := fsdb.Key("foo")
 	content := "bar"
@@ -63,7 +70,10 @@ func TestRemote(t *testing.T) {
 	root, db := createRemoteDB(t)
 	defer os.RemoveAll(root)
 	db.Opts.SetUploadDelay(delay).SetSkipFunc(remote.UploadAll)
-	db.DB = remote.Open(db.Local, db.Remote, db.Opts)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	db.Open(ctx)
 
 	key := fsdb.Key("foo")
 	content := "bar"
@@ -136,7 +146,10 @@ func TestSkip(t *testing.T) {
 	root, db := createRemoteDB(t)
 	defer os.RemoveAll(root)
 	db.Opts.SetUploadDelay(delay).SetSkipFunc(skipFunc)
-	db.DB = remote.Open(db.Local, db.Remote, db.Opts)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	db.Open(ctx)
 
 	if err := db.DB.Write(key1, strings.NewReader(content)); err != nil {
 		t.Fatalf("Write %v failed: %v", key1, err)
@@ -193,7 +206,10 @@ func TestSlowUpload(t *testing.T) {
 	db.Opts.SetUploadDelay(delay)
 	db.Opts.SetUploadThreadNum(len(keys) - left)
 	db.Opts.SetSkipFunc(remote.UploadAll)
-	db.DB = remote.Open(db.Local, db.Remote, db.Opts)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	db.Open(ctx)
 
 	for _, key := range keys {
 		if err := db.DB.Write(key, strings.NewReader(content)); err != nil {
@@ -234,7 +250,10 @@ func TestUploadRaceCondition(t *testing.T) {
 		After:  0,
 	}
 	db.Opts.SetUploadDelay(delay).SetSkipFunc(remote.UploadAll)
-	db.DB = remote.Open(db.Local, db.Remote, db.Opts)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	db.Open(ctx)
 
 	if err := db.DB.Write(key, strings.NewReader(content1)); err != nil {
 		t.Fatalf("Write failed: %v", err)
@@ -276,7 +295,10 @@ func TestRemoteReadRaceCondition(t *testing.T) {
 		After:  0,
 	}
 	db.Opts.SetUploadDelay(delay).SetSkipFunc(remote.UploadAll)
-	db.DB = remote.Open(db.Local, db.Remote, db.Opts)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	db.Open(ctx)
 
 	if err := db.DB.Write(key, strings.NewReader(content1)); err != nil {
 		t.Fatalf("Write failed: %v", err)
@@ -307,8 +329,8 @@ func createRemoteDB(t *testing.T) (root string, db dbCollection) {
 	db.Local = local.Open(local.NewDefaultOptions(localRoot))
 	db.Remote = bucket.MockBucket(remoteRoot)
 	db.Opts = remote.NewDefaultOptions()
+	db.Opts.SetLogger(log.New(os.Stderr, "", log.LstdFlags))
 	db.Opts.SetSkipFunc(remote.SkipAll)
-	db.DB = remote.Open(db.Local, db.Remote, db.Opts)
 	return
 }
 

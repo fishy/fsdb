@@ -3,6 +3,7 @@ package remote
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"hash/crc32"
 	"io"
 	"io/ioutil"
@@ -16,7 +17,6 @@ import (
 	"github.com/fishy/fsdb/interface"
 )
 
-const tempDirPrefix = "remote_"
 const tempFilename = "data"
 
 var crc32cTable = crc32.MakeTable(crc32.Castagnoli)
@@ -30,7 +30,8 @@ type remoteDB struct {
 // Open creates a remote FSDB,
 // which is backed by a local FSDB and a remote bucket.
 //
-// There's no need to close.
+// There's no need to close,
+// but you could cancel the context to stop the upload loop.
 //
 // Read reads from local first,
 // then read from remote bucket if it does not exist locally.
@@ -43,54 +44,31 @@ type remoteDB struct {
 //
 // Delete deletes from both local and remote,
 // and returns combined errors, if any.
-func Open(local fsdb.Local, bucket bucket.Bucket, opts Options) fsdb.FSDB {
+func Open(
+	ctx context.Context,
+	local fsdb.Local,
+	bucket bucket.Bucket,
+	opts Options,
+) fsdb.FSDB {
 	db := &remoteDB{
 		local:  local,
 		bucket: bucket,
 		opts:   opts,
 	}
-	go db.startScanLoop()
+	go db.startScanLoop(ctx)
 	return db
 }
 
-func (db *remoteDB) Read(key fsdb.Key) (data io.ReadCloser, err error) {
-	data, err = db.local.Read(key)
+func (db *remoteDB) Read(key fsdb.Key) (io.ReadCloser, error) {
+	data, err := db.local.Read(key)
 	if err == nil {
 		return data, nil
 	}
 	if !fsdb.IsNoSuchKeyError(err) {
 		return nil, err
 	}
-	if logger := db.opts.GetLogger(); logger != nil {
-		started := time.Now()
-		defer logger.Printf(
-			"download %v from bucket took %v, error: %v",
-			key,
-			time.Now().Sub(started),
-			err,
-		)
-	}
-	remoteData, err := db.bucket.Read(db.opts.GetRemoteName(key))
-	if remoteData != nil {
-		defer remoteData.Close()
-	}
+	remoteData, err := db.readBucket(key)
 	if !db.bucket.IsNotExist(err) {
-		if err != nil {
-			return nil, err
-		}
-		buf, _ := ioutil.ReadAll(remoteData)
-		gzipReader, err := gzip.NewReader(bytes.NewReader(buf))
-		if err != nil {
-			return nil, err
-		}
-		defer gzipReader.Close()
-		tmpdir, tmpfile, err := db.saveTempFile(gzipReader)
-		if tmpdir != "" {
-			defer os.Remove(tmpdir)
-		}
-		if tmpfile != "" {
-			defer os.Remove(tmpfile)
-		}
 		if err != nil {
 			return nil, err
 		}
@@ -100,12 +78,7 @@ func (db *remoteDB) Read(key fsdb.Key) (data io.ReadCloser, err error) {
 		if err == nil {
 			return data, nil
 		}
-		f, err := os.Open(tmpfile)
-		if err != nil {
-			return nil, err
-		}
-		defer f.Close()
-		if err = db.local.Write(key, f); err != nil {
+		if err := db.local.Write(key, remoteData); err != nil {
 			return nil, err
 		}
 	}
@@ -137,6 +110,34 @@ func (db *remoteDB) Write(key fsdb.Key, data io.Reader) error {
 	return db.local.Write(key, data)
 }
 
+// readBucket reads the key from remote bucket fully.
+func (db *remoteDB) readBucket(key fsdb.Key) (io.Reader, error) {
+	started := time.Now()
+	data, err := db.bucket.Read(db.opts.GetRemoteName(key))
+	if err != nil {
+		return nil, err
+	}
+	defer data.Close()
+	if logger := db.opts.GetLogger(); logger != nil {
+		defer logger.Printf(
+			"download %v from bucket took %v",
+			key,
+			time.Now().Sub(started),
+		)
+	}
+	gzipReader, err := gzip.NewReader(data)
+	if err != nil {
+		return nil, err
+	}
+	defer gzipReader.Close()
+	buf := new(bytes.Buffer)
+	if _, err := io.Copy(buf, gzipReader); err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+// readAndCRC reads the key from local fully, and calculates crc32c.
 func (db *remoteDB) readAndCRC(key fsdb.Key) (uint32, []byte, error) {
 	reader, err := db.local.Read(key)
 	if err != nil {
@@ -150,25 +151,7 @@ func (db *remoteDB) readAndCRC(key fsdb.Key) (uint32, []byte, error) {
 	return crc32.Checksum(buf, crc32cTable), buf, nil
 }
 
-func (db *remoteDB) saveTempFile(data io.Reader) (
-	dir string,
-	file string,
-	err error,
-) {
-	dir, err = db.local.GetTempDir(tempDirPrefix)
-	if err != nil {
-		return
-	}
-	file = dir + tempFilename
-	f, err := os.Create(file)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-	_, err = io.Copy(f, data)
-	return
-}
-
+// uploadKey uploads a key to remote bucket, and deletes the local copy.
 func (db *remoteDB) uploadKey(key fsdb.Key) error {
 	oldCrc, content, err := db.readAndCRC(key)
 	if err != nil {
@@ -192,13 +175,20 @@ func (db *remoteDB) uploadKey(key fsdb.Key) error {
 	return nil
 }
 
-func (db *remoteDB) startScanLoop() {
-	for range time.Tick(db.opts.GetUploadDelay()) {
-		db.scanLoop()
+func (db *remoteDB) startScanLoop(ctx context.Context) {
+	ticker := time.NewTicker(db.opts.GetUploadDelay())
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			db.scanLoop(ctx)
+		}
 	}
 }
 
-func (db *remoteDB) scanLoop() {
+func (db *remoteDB) scanLoop(ctx context.Context) {
 	n := db.opts.GetUploadThreadNum()
 	logger := db.opts.GetLogger()
 	keyChan := make(chan fsdb.Key, 0)
@@ -211,27 +201,38 @@ func (db *remoteDB) scanLoop() {
 	var wg sync.WaitGroup
 	wg.Add(n)
 
+	workerCtx, cancel := context.WithCancel(ctx)
+
 	// Workers
 	for i := 0; i < n; i++ {
-		go func() {
-			for key := range keyChan {
-				atomic.AddInt64(scanned, 1)
-				if db.opts.SkipKey(key) {
-					atomic.AddInt64(skipped, 1)
-					continue
-				}
-				if err := db.uploadKey(key); err != nil {
-					// All errors will be retried on next scan loop, just log and ignore.
-					if logger != nil {
-						logger.Printf("failed to upload %v to bucket: %v", key, err)
+		go func(ctx context.Context, keys chan fsdb.Key) {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case key, more := <-keys:
+					if !more {
+						return
 					}
-					atomic.AddInt64(failed, 1)
-				} else {
-					atomic.AddInt64(uploaded, 1)
+					atomic.AddInt64(scanned, 1)
+					if db.opts.SkipKey(key) {
+						atomic.AddInt64(skipped, 1)
+						continue
+					}
+					if err := db.uploadKey(key); err != nil {
+						// All errors will be retried on next scan loop,
+						// safe to just log and ignore.
+						if logger != nil {
+							logger.Printf("failed to upload %v to bucket: %v", key, err)
+						}
+						atomic.AddInt64(failed, 1)
+					} else {
+						atomic.AddInt64(uploaded, 1)
+					}
 				}
 			}
-			wg.Done()
-		}()
+		}(workerCtx, keyChan)
 	}
 
 	started := time.Now()
@@ -249,17 +250,23 @@ func (db *remoteDB) scanLoop() {
 				atomic.LoadInt64(failed),
 			)
 		}
+		cancel()
 	}()
 
 	if err := db.local.ScanKeys(
 		func(key fsdb.Key) bool {
-			keyChan <- key
-			return true
+			select {
+			case <-ctx.Done():
+				return false
+			default:
+				keyChan <- key
+				return true
+			}
 		},
 		func(err error) bool {
 			// Most I/O errors here are just caused by race conditions,
 			// safe to log and ignore.
-			if logger != nil {
+			if logger != nil && !os.IsNotExist(err) {
 				logger.Printf("ScanKeys reported error: %v", err)
 			}
 			return true
@@ -268,6 +275,7 @@ func (db *remoteDB) scanLoop() {
 		if logger != nil {
 			logger.Printf("ScanKeys returned error: %v", err)
 		}
+		cancel()
 	}
 }
 
