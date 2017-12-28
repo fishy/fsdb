@@ -235,6 +235,22 @@ func (db *remoteDB) scanLoop() {
 	}
 
 	started := time.Now()
+
+	defer func() {
+		close(keyChan)
+		wg.Wait()
+		if logger != nil {
+			logger.Printf(
+				"took %v, scanned %d, skipped %d, uploaded %d, failed %d",
+				time.Now().Sub(started),
+				atomic.LoadInt64(scanned),
+				atomic.LoadInt64(skipped),
+				atomic.LoadInt64(uploaded),
+				atomic.LoadInt64(failed),
+			)
+		}
+	}()
+
 	if err := db.local.ScanKeys(
 		func(key fsdb.Key) bool {
 			keyChan <- key
@@ -251,19 +267,6 @@ func (db *remoteDB) scanLoop() {
 	); err != nil {
 		if logger != nil {
 			logger.Printf("ScanKeys returned error: %v", err)
-		}
-	} else {
-		close(keyChan)
-		wg.Wait()
-		if logger != nil {
-			logger.Printf(
-				"took %v, scanned %d, skipped %d, uploaded %d, failed %d",
-				time.Now().Sub(started),
-				atomic.LoadInt64(scanned),
-				atomic.LoadInt64(skipped),
-				atomic.LoadInt64(uploaded),
-				atomic.LoadInt64(failed),
-			)
 		}
 	}
 }
