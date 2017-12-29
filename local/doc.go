@@ -6,12 +6,12 @@
 // Atomicity
 //
 // There's no extra locks in the implementation.
-// The atomicity relies on the atomicity guarantee of your filesystem on
+// The atomicity relies on the atomicity guaranteed by your filesystem on
 // operations like move (rename), delete, open, etc.
 //
 // Read Before Overwriting Finishes on the Same Key
 //
-// If you issue a read operation before a overwrite operation (write operation
+// If you issue a read operation before an overwrite operation (write operation
 // on an existing key) on the same key finishes (returns),
 // based on your timing you could get either the previous data, or empty data
 // (less likely).
