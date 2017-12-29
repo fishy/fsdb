@@ -128,7 +128,7 @@ func scanKeys(t *testing.T, db fsdb.Local) []fsdb.Key {
 		keys = append(keys, key)
 		return true
 	}
-	if err := db.ScanKeys(keyFunc, fsdb.IgnoreAllErrFunc); err != nil {
+	if err := db.ScanKeys(keyFunc, fsdb.IgnoreAll); err != nil {
 		t.Fatalf("ScanKeys returned error: %v", err)
 	}
 	return keys

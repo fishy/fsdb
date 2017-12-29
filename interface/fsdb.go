@@ -58,17 +58,18 @@ type KeyFunc func(key Key) bool
 // It should return true to ignore the error, or false to abort the scan.
 type ErrFunc func(path string, err error) bool
 
-// StopAllErrFunc is an ErrFunc that can be used in Local.ScanKeys().
+// StopAll is an ErrFunc that can be used in Local.ScanKeys().
 //
 // It always returns false,
-// means the scan stops at the first I/O errors it encounters.
-func StopAllErrFunc(path string, err error) bool {
+// means that the scan stops at the first I/O errors it encounters.
+func StopAll(path string, err error) bool {
 	return false
 }
 
-// IgnoreAllErrFunc is an ErrFunc that can be used in Local.ScanKeys().
+// IgnoreAll is an ErrFunc that can be used in Local.ScanKeys().
 //
-// It always returns true, means the scan ignores all I/O errors if possible.
-func IgnoreAllErrFunc(path string, err error) bool {
+// It always returns true,
+// means that the scan ignores all I/O errors if possible.
+func IgnoreAll(path string, err error) bool {
 	return true
 }
