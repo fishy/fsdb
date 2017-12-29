@@ -76,6 +76,13 @@ All it uses are Go standard libraries and libraries from within this repository.
   [io.Closer](https://godoc.org/io#Closer)
   into an [io.ReadCloser](https://godoc.org/io#ReadCloser).
 
+## Test
+
+All packages provide its own tests can be run with `go test`.
+If you want to test every package within this repository,
+you can use [Bazel](https://bazel.build/) by running `bazel test ...`
+under the repository root directory.
+
 ## License
 
 [BSD License](https://github.com/fishy/fsdb/blob/master/LICENSE).
