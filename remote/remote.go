@@ -62,6 +62,12 @@ func Open(
 }
 
 func (db *impl) Read(ctx context.Context, key fsdb.Key) (io.ReadCloser, error) {
+	select {
+	default:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
 	data, err := db.local.Read(ctx, key)
 	if err == nil {
 		return data, nil
@@ -99,6 +105,12 @@ func (db *impl) Read(ctx context.Context, key fsdb.Key) (io.ReadCloser, error) {
 }
 
 func (db *impl) Write(ctx context.Context, key fsdb.Key, data io.Reader) error {
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
 	if db.opts.GetUseLock() {
 		db.locks.Lock(string(key))
 		defer db.locks.Unlock(string(key))
@@ -107,6 +119,12 @@ func (db *impl) Write(ctx context.Context, key fsdb.Key, data io.Reader) error {
 }
 
 func (db *impl) Delete(ctx context.Context, key fsdb.Key) error {
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
 	existNeither := true
 
 	ret := errbatch.NewErrBatch()
@@ -132,6 +150,12 @@ func (db *impl) readBucket(
 	ctx context.Context,
 	key fsdb.Key,
 ) (io.Reader, error) {
+	select {
+	default:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
 	started := time.Now()
 	data, err := db.bucket.Read(ctx, db.opts.GetRemoteName(key))
 	if err != nil {
@@ -176,6 +200,12 @@ func (db *impl) readAndCRC(
 	ctx context.Context,
 	key fsdb.Key,
 ) (uint32, []byte, error) {
+	select {
+	default:
+	case <-ctx.Done():
+		return 0, nil, ctx.Err()
+	}
+
 	reader, err := db.local.Read(ctx, key)
 	if err != nil {
 		return 0, nil, err
