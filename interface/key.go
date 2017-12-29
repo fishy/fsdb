@@ -9,6 +9,10 @@ import (
 // Key is the key type of an FSDB.
 type Key []byte
 
+// String represents the key.
+//
+// If the key is valid UTF-8, it will be treated as string.
+// Otherwise it will be treated as []byte.
 func (key Key) String() string {
 	if utf8.Valid(key) {
 		return string(key)

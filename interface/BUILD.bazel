@@ -16,6 +16,7 @@ go_test(
     name = "go_default_xtest",
     size = "small",
     srcs = [
+        "doc_test.go",
         "error_test.go",
         "key_test.go",
     ],
