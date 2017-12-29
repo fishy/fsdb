@@ -13,7 +13,10 @@ go_library(
 go_test(
     name = "go_default_xtest",
     size = "small",
-    srcs = ["pool_test.go"],
+    srcs = [
+        "doc_test.go",
+        "pool_test.go",
+    ],
     importpath = "github.com/fishy/fsdb/pool_test",
     deps = [":go_default_library"],
 )
