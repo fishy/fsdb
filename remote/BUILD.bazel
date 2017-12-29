@@ -18,9 +18,9 @@ go_library(
 
 go_test(
     name = "go_default_xtest",
+    size = "small",
     srcs = ["remote_test.go"],
     importpath = "github.com/fishy/fsdb/remote_test",
-    size = "small",
     deps = [
         ":go_default_library",
         "//bucket:go_default_library",
