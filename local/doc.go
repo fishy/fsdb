@@ -13,19 +13,19 @@
 //
 // If you issue a read operation before an overwrite operation (write operation
 // on an existing key) on the same key finishes (returns),
-// based on your timing you could get either the previous data, or empty data
-// (less likely).
+// based on your timing you could get either the previous data,
+// or new data.
 // You will never read corrupt/incomplete data when fsdb returns nil error.
 //
 // In details, the write operation sequence is:
 //
 //     1. Check for key collision
 //     2. Write key-value data onto temporary directory
-//     3. Delete old value(s), if any
-//     4. Move new key-value data from temporary directory to actual directory
+//     3. Move new key-value data from temporary directory to actual directory
+//     4. Delete old value(s), if any
 //
 // Read operations issued before Step 3 will get the old data.
-// Read operations issued while Step 3 and 4 are running will get empty data.
+// Read operations issued after Step 3 will get the new data.
 //
 // Two Write Operations on the Same Key
 //

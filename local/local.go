@@ -209,13 +209,17 @@ func (db *impl) Write(
 	if err = os.MkdirAll(dir, FileModeForDirs); err != nil && !os.IsExist(err) {
 		return err
 	}
-	for _, file := range []string{DataFilename, GzipDataFilename} {
-		if err = os.Remove(dir + file); err != nil && !os.IsNotExist(err) {
-			return err
-		}
-	}
 	if err = os.Rename(tmpDataFile, dataFile); err != nil {
 		return err
+	}
+	for _, file := range []string{DataFilename, GzipDataFilename} {
+		fullpath := dir + file
+		if dataFile == fullpath {
+			continue
+		}
+		if err = os.Remove(fullpath); err != nil && !os.IsNotExist(err) {
+			return err
+		}
 	}
 
 	select {
