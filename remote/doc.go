@@ -36,6 +36,8 @@
 //
 // Turning on the optional row lock will make sure the discussed data loss
 // scenarios won't happen, but it also degrade the performance slightly.
+// The lock is only used partially inside the operations
+// (whole local write operation, remote read from Step 3, upload from Step 3).
 //
 // There are no other locks used in the code,
 // except a few atomic numbers in upload loop for logging purpose.

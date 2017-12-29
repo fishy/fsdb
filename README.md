@@ -31,7 +31,7 @@ which means its performance is almost identical to the disk I/O performance.
 The local implementation has no locks.
 The hybrid remote implementation only has an optional row lock,
 please refer to the
-[package documentation](https://godoc.org/github.com/fishy/fsdb/remote)
+[package documentation](https://godoc.org/github.com/fishy/fsdb/remote#hdr-Concurrency)
 for more details.
 
 The local and hybrid implementation has the same interface,
