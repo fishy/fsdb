@@ -13,6 +13,7 @@ import (
 const (
 	DefaultUploadDelay     time.Duration = time.Minute * 5
 	DefaultUploadThreadNum               = 5
+	DefaultUseLock                       = true
 )
 
 // DefaultNameFunc is the default name function used.
@@ -45,8 +46,16 @@ type Options interface {
 	// GetUploadThreadNum returns the number of threads used in upload scan loops.
 	//
 	// The higher the number, the faster the uploads,
-	// but it also means heavier I/O.
+	// but it also means heavier disk I/O load.
 	GetUploadThreadNum() int
+
+	// GetUseLock returns whether we should use a row lock.
+	//
+	// Uses a row lock guarantees that we do not overwrite newer data with stale
+	// data, but it also degrades all operations.
+	//
+	// Refer to the package documentation for more details.
+	GetUseLock() bool
 
 	// GetLogger returns the logger to be used in remote FSDB.
 	//
@@ -78,6 +87,9 @@ type OptionsBuilder interface {
 	// SetUploadThreadNum sets the number of threads used in upload scan loops.
 	SetUploadThreadNum(threads int) OptionsBuilder
 
+	// SetUseLock sets whether to use a row lock.
+	SetUseLock(lock bool) OptionsBuilder
+
 	// SetLogger sets the logger used in remote FSDB.
 	SetLogger(logger *log.Logger) OptionsBuilder
 
@@ -89,6 +101,7 @@ type options struct {
 	delay    time.Duration
 	threads  int
 	logger   *log.Logger
+	lock     bool
 	nameFunc func(fsdb.Key) string
 	skipFunc func(fsdb.Key) bool
 }
@@ -99,6 +112,7 @@ func NewDefaultOptions() OptionsBuilder {
 		delay:    DefaultUploadDelay,
 		threads:  DefaultUploadThreadNum,
 		logger:   nil,
+		lock:     DefaultUseLock,
 		nameFunc: DefaultNameFunc,
 		skipFunc: DefaultSkipFunc,
 	}
@@ -110,6 +124,10 @@ func (opt *options) GetUploadDelay() time.Duration {
 
 func (opt *options) GetUploadThreadNum() int {
 	return opt.threads
+}
+
+func (opt *options) GetUseLock() bool {
+	return opt.lock
 }
 
 func (opt *options) GetLogger() *log.Logger {
@@ -135,6 +153,11 @@ func (opt *options) SetUploadDelay(delay time.Duration) OptionsBuilder {
 
 func (opt *options) SetUploadThreadNum(threads int) OptionsBuilder {
 	opt.threads = threads
+	return opt
+}
+
+func (opt *options) SetUseLock(lock bool) OptionsBuilder {
+	opt.lock = lock
 	return opt
 }
 

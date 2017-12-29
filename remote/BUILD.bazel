@@ -13,6 +13,7 @@ go_library(
         "//bucket:go_default_library",
         "//errbatch:go_default_library",
         "//interface:go_default_library",
+        "//rowlock:go_default_library",
     ],
 )
 

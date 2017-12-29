@@ -14,6 +14,7 @@ import (
 	"github.com/fishy/fsdb/bucket"
 	"github.com/fishy/fsdb/errbatch"
 	"github.com/fishy/fsdb/interface"
+	"github.com/fishy/fsdb/rowlock"
 )
 
 const tempFilename = "data"
@@ -24,6 +25,7 @@ type remoteDB struct {
 	local  fsdb.Local
 	bucket bucket.Bucket
 	opts   Options
+	locks  *rowlock.RowLock
 }
 
 // Open creates a remote FSDB,
@@ -53,6 +55,7 @@ func Open(
 		local:  local,
 		bucket: bucket,
 		opts:   opts,
+		locks:  rowlock.NewRowLock(rowlock.MutexNewLocker),
 	}
 	go db.startScanLoop(ctx)
 	return db
@@ -70,6 +73,10 @@ func (db *remoteDB) Read(key fsdb.Key) (io.ReadCloser, error) {
 	if !db.bucket.IsNotExist(err) {
 		if err != nil {
 			return nil, err
+		}
+		if db.opts.GetUseLock() {
+			db.locks.Lock(string(key))
+			defer db.locks.Unlock(string(key))
 		}
 		// Read from local again, so that in case a new write happened during
 		// downloading, we don't overwrite it with stale remote data.
@@ -106,6 +113,10 @@ func (db *remoteDB) Delete(key fsdb.Key) error {
 }
 
 func (db *remoteDB) Write(key fsdb.Key, data io.Reader) error {
+	if db.opts.GetUseLock() {
+		db.locks.Lock(string(key))
+		defer db.locks.Unlock(string(key))
+	}
 	return db.local.Write(key, data)
 }
 
@@ -162,6 +173,10 @@ func (db *remoteDB) uploadKey(key fsdb.Key) error {
 	}
 	if err = db.bucket.Write(db.opts.GetRemoteName(key), reader); err != nil {
 		return err
+	}
+	if db.opts.GetUseLock() {
+		db.locks.Lock(string(key))
+		defer db.locks.Unlock(string(key))
 	}
 	// check crc again before deleting
 	newCrc, _, err := db.readAndCRC(key)
@@ -250,9 +265,10 @@ func (db *remoteDB) startScanLoop(ctx context.Context) {
 			}
 
 			if logger != nil {
-				// The skipped/uploaded/failed value could have a offset less than
+				// The skipped/uploaded/failed value could be off by less than twice the
 				// worker number, as when we print this log the workers are likely not
-				// finished with the keys yet.
+				// finished with the keys yet, and when we start the next loop the
+				// workers might be still working on keys from the previous loop.
 				logger.Printf(
 					"took %v, scanned %d, skipped %d, uploaded %d, failed %d",
 					time.Now().Sub(started),

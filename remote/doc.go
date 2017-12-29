@@ -13,7 +13,8 @@
 //
 // Concurrency
 //
-// There are two possible cases we might lose date due to race conditions,
+// If you turn off the optional row lock (default is on),
+// there are two possible cases we might lose date due to race conditions,
 // but they are very unlikely.
 //
 // The first case is remote read. The read process is:
@@ -33,9 +34,9 @@
 // If another overwrite happens between Step 3 and 4,
 // then it might be deleted on Step 4 so we only have stale data in the system.
 //
-// Both cases can be mitigated by a row lock,
-// which could be added in a future version,
-// but it would also degrade performance.
-// The current implementation has no locks,
+// Turning on the optional row lock will make sure the discussed data loss
+// scenarios won't happen, but it also degrade the performance slightly.
+//
+// There are no other locks used in the code,
 // except a few atomic numbers in upload loop for logging purpose.
 package remote
