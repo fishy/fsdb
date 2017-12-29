@@ -3,6 +3,8 @@
 FSDB is a collection of [Go](https://golang.org) libraries providing a key-value
 store on your file system.
 
+([Example code on godoc](https://godoc.org/github.com/fishy/fsdb/local#example-package))
+
 ## Why?
 
 tl;dr: It's for larger (10k+ per entry), less latency sensitive data store.
