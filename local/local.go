@@ -67,6 +67,12 @@ func Open(opts Options) fsdb.Local {
 }
 
 func (db *impl) Read(ctx context.Context, key fsdb.Key) (io.ReadCloser, error) {
+	select {
+	default:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
 	dir := db.opts.GetDirForKey(key)
 	keyFile := dir + KeyFilename
 	if _, err := os.Lstat(keyFile); os.IsNotExist(err) {
@@ -99,6 +105,12 @@ func (db *impl) Read(ctx context.Context, key fsdb.Key) (io.ReadCloser, error) {
 }
 
 func (db *impl) Write(ctx context.Context, key fsdb.Key, data io.Reader) (err error) {
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
 	dir := db.opts.GetDirForKey(key)
 	keyFile := dir + KeyFilename
 	if _, err = os.Lstat(keyFile); err == nil {
@@ -111,6 +123,12 @@ func (db *impl) Write(ctx context.Context, key fsdb.Key, data io.Reader) (err er
 		return err
 	}
 	defer os.RemoveAll(tmpdir)
+
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 
 	// Write temp key file
 	tmpKeyFile := tmpdir + KeyFilename
@@ -126,6 +144,12 @@ func (db *impl) Write(ctx context.Context, key fsdb.Key, data io.Reader) (err er
 		return nil
 	}(); err != nil {
 		return err
+	}
+
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 
 	// Write temp data file
@@ -170,6 +194,12 @@ func (db *impl) Write(ctx context.Context, key fsdb.Key, data io.Reader) (err er
 		}
 	}
 
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
 	// Move data file
 	if err = os.MkdirAll(dir, FileModeForDirs); err != nil && !os.IsExist(err) {
 		return err
@@ -183,6 +213,12 @@ func (db *impl) Write(ctx context.Context, key fsdb.Key, data io.Reader) (err er
 		return err
 	}
 
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
 	// Move key file
 	if err = os.Rename(tmpKeyFile, keyFile); err != nil {
 		return err
@@ -191,6 +227,12 @@ func (db *impl) Write(ctx context.Context, key fsdb.Key, data io.Reader) (err er
 }
 
 func (db *impl) Delete(ctx context.Context, key fsdb.Key) error {
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
 	dir := db.opts.GetDirForKey(key)
 	keyFile := dir + KeyFilename
 	if _, err := os.Lstat(keyFile); os.IsNotExist(err) {
@@ -207,6 +249,12 @@ func (db *impl) ScanKeys(
 	keyFunc fsdb.KeyFunc,
 	errFunc fsdb.ErrFunc,
 ) error {
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
 	if err := filepath.Walk(
 		db.opts.GetRootDataDir(),
 		func(path string, info os.FileInfo, err error) error {
