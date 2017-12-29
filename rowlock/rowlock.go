@@ -7,6 +7,9 @@ import (
 )
 
 // LockerPoolMaxSize is the max size of the locker pool.
+//
+// The locker pool contains the lockers to be used for new rows.
+// It has no relation to the number of rows in the RowLock.
 const LockerPoolMaxSize = 10
 
 // NewLocker defines a type function that can be used to create a new Locker.
