@@ -282,7 +282,7 @@ func TestRemoteReadRaceCondition(t *testing.T) {
 	// Overwrite with content2 during slow read. Check read result.
 
 	delay := time.Millisecond * 100
-	longer := time.Millisecond * 150
+	longer := time.Millisecond * 120
 	secondWrite := 2 * delay
 
 	key := fsdb.Key("key")
