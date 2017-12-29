@@ -82,29 +82,34 @@ func (db *impl) Read(ctx context.Context, key fsdb.Key) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	dataFile := dir + DataFilename
-	if _, err := os.Lstat(dataFile); err == nil {
-		return os.Open(dataFile)
+	if db.opts.GetUseGzip() {
+		reader, err := readGzip(dir)
+		if os.IsNotExist(err) {
+			reader, err = readPlain(dir)
+			if os.IsNotExist(err) {
+				return nil, &fsdb.NoSuchKeyError{Key: key}
+			}
+			return reader, err
+		}
+		return reader, err
 	}
 
-	dataFile = dir + GzipDataFilename
-	if _, err := os.Lstat(dataFile); err == nil {
-		file, err := os.Open(dataFile)
-		if err != nil {
-			return nil, err
+	reader, err := readPlain(dir)
+	if os.IsNotExist(err) {
+		reader, err = readGzip(dir)
+		if os.IsNotExist(err) {
+			return nil, &fsdb.NoSuchKeyError{Key: key}
 		}
-		reader, err := gzip.NewReader(file)
-		if err != nil {
-			return nil, err
-		}
-		return wrapreader.Wrap(reader, file), nil
+		return reader, err
 	}
-
-	// Key file exists but there's no data file,
-	return nil, &fsdb.NoSuchKeyError{Key: key}
+	return reader, err
 }
 
-func (db *impl) Write(ctx context.Context, key fsdb.Key, data io.Reader) (err error) {
+func (db *impl) Write(
+	ctx context.Context,
+	key fsdb.Key,
+	data io.Reader,
+) (err error) {
 	select {
 	default:
 	case <-ctx.Done():
@@ -350,4 +355,31 @@ func readKey(path string) (fsdb.Key, error) {
 
 func createFile(path string) (*os.File, error) {
 	return os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, FileModeForFiles)
+}
+
+// readPlain reads the uncompressed data file
+func readPlain(dir string) (io.ReadCloser, error) {
+	dataFile := dir + DataFilename
+	if _, err := os.Lstat(dataFile); err != nil {
+		return nil, err
+	}
+	return os.Open(dataFile)
+}
+
+// readGzip reads the gzipped data file
+func readGzip(dir string) (io.ReadCloser, error) {
+	dataFile := dir + GzipDataFilename
+	if _, err := os.Lstat(dataFile); err != nil {
+		return nil, err
+	}
+	file, err := os.Open(dataFile)
+	if err != nil {
+		return nil, err
+	}
+	reader, err := gzip.NewReader(file)
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+	return wrapreader.Wrap(reader, file), nil
 }
