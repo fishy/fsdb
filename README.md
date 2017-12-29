@@ -5,6 +5,8 @@ store on your file system.
 
 ## Why?
 
+tl;dr: It's for larger (10k+ per entry), less latency sensitive data store.
+
 Most key-value store libraries are optimized for small, in-memory size.
 Even for on-disk libraries, they are usually not optimized for larger (10k+)
 values.
@@ -23,6 +25,11 @@ Further more, FSDB provided a hybrid implementation,
 which allows you to put some of your data on a remote bucket
 (AWS S3, Google Cloud Storage, etc.),
 providing an even better price per GB (and higher latency).
+
+It can also be used to implement mocks of remote library.
+For example, package [bucket](https://godoc.org/github.com/fishy/fsdb/bucket)
+uses local FSDB to implement its
+[mock](https://github.com/fishy/fsdb/blob/master/bucket/mock.go) for testing.
 
 ## Highlights
 
