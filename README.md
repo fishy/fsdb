@@ -22,7 +22,7 @@ And use FSDB for largest, least latency sensitive data.
 Further more, FSDB provided a hybrid implementation,
 which allows you to put some of your data on a remote bucket
 (AWS S3, Google Cloud Storage, etc.),
-providing an even better price per GB and larger latency.
+providing an even better price per GB (and higher latency).
 
 ## Highlights
 
@@ -82,6 +82,11 @@ All packages provide its own tests can be run with `go test`.
 If you want to test every package within this repository,
 you can use [Bazel](https://bazel.build/) by running `bazel test ...`
 under the repository root directory.
+
+There are some tests with sleep calls,
+you can skip them by running `go test -short` instead.
+Package [local](https://godoc.org/github.com/fishy/fsdb/local)
+provides a benchmark test can be run with `go test -bench .`.
 
 ## License
 
