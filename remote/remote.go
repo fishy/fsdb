@@ -21,7 +21,7 @@ const tempFilename = "data"
 
 var crc32cTable = crc32.MakeTable(crc32.Castagnoli)
 
-type remoteDB struct {
+type impl struct {
 	local  fsdb.Local
 	bucket bucket.Bucket
 	opts   Options
@@ -51,7 +51,7 @@ func Open(
 	bucket bucket.Bucket,
 	opts Options,
 ) fsdb.FSDB {
-	db := &remoteDB{
+	db := &impl{
 		local:  local,
 		bucket: bucket,
 		opts:   opts,
@@ -61,46 +61,61 @@ func Open(
 	return db
 }
 
-func (db *remoteDB) Read(key fsdb.Key) (io.ReadCloser, error) {
-	data, err := db.local.Read(key)
+func (db *impl) Read(ctx context.Context, key fsdb.Key) (io.ReadCloser, error) {
+	data, err := db.local.Read(ctx, key)
 	if err == nil {
 		return data, nil
 	}
 	if !fsdb.IsNoSuchKeyError(err) {
 		return nil, err
 	}
-	remoteData, err := db.readBucket(key)
+	remoteData, err := db.readBucket(ctx, key)
 	if !db.bucket.IsNotExist(err) {
 		if err != nil {
 			return nil, err
 		}
+
+		select {
+		default:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+
 		if db.opts.GetUseLock() {
 			db.locks.Lock(string(key))
 			defer db.locks.Unlock(string(key))
 		}
 		// Read from local again, so that in case a new write happened during
 		// downloading, we don't overwrite it with stale remote data.
-		data, err = db.local.Read(key)
+		data, err = db.local.Read(ctx, key)
 		if err == nil {
 			return data, nil
 		}
-		if err := db.local.Write(key, remoteData); err != nil {
+		if err := db.local.Write(ctx, key, remoteData); err != nil {
 			return nil, err
 		}
 	}
-	return db.local.Read(key)
+	return db.local.Read(ctx, key)
 }
 
-func (db *remoteDB) Delete(key fsdb.Key) error {
+func (db *impl) Write(ctx context.Context, key fsdb.Key, data io.Reader) error {
+	if db.opts.GetUseLock() {
+		db.locks.Lock(string(key))
+		defer db.locks.Unlock(string(key))
+	}
+	return db.local.Write(ctx, key, data)
+}
+
+func (db *impl) Delete(ctx context.Context, key fsdb.Key) error {
 	existNeither := true
 
 	ret := errbatch.NewErrBatch()
-	err := db.local.Delete(key)
+	err := db.local.Delete(ctx, key)
 	if !fsdb.IsNoSuchKeyError(err) {
 		existNeither = false
 		ret.Add(err)
 	}
-	err = db.bucket.Delete(db.opts.GetRemoteName(key))
+	err = db.bucket.Delete(ctx, db.opts.GetRemoteName(key))
 	if !db.bucket.IsNotExist(err) {
 		existNeither = false
 		ret.Add(err)
@@ -112,18 +127,13 @@ func (db *remoteDB) Delete(key fsdb.Key) error {
 	return ret.Compile()
 }
 
-func (db *remoteDB) Write(key fsdb.Key, data io.Reader) error {
-	if db.opts.GetUseLock() {
-		db.locks.Lock(string(key))
-		defer db.locks.Unlock(string(key))
-	}
-	return db.local.Write(key, data)
-}
-
 // readBucket reads the key from remote bucket fully.
-func (db *remoteDB) readBucket(key fsdb.Key) (io.Reader, error) {
+func (db *impl) readBucket(
+	ctx context.Context,
+	key fsdb.Key,
+) (io.Reader, error) {
 	started := time.Now()
-	data, err := db.bucket.Read(db.opts.GetRemoteName(key))
+	data, err := db.bucket.Read(ctx, db.opts.GetRemoteName(key))
 	if err != nil {
 		return nil, err
 	}
@@ -135,21 +145,38 @@ func (db *remoteDB) readBucket(key fsdb.Key) (io.Reader, error) {
 			time.Now().Sub(started),
 		)
 	}
+
+	select {
+	default:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
 	gzipReader, err := gzip.NewReader(data)
 	if err != nil {
 		return nil, err
 	}
 	defer gzipReader.Close()
-	buf := new(bytes.Buffer)
-	if _, err := io.Copy(buf, gzipReader); err != nil {
+
+	select {
+	default:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	buf, err := ioutil.ReadAll(gzipReader)
+	if err != nil {
 		return nil, err
 	}
-	return buf, nil
+	return bytes.NewReader(buf), nil
 }
 
 // readAndCRC reads the key from local fully, and calculates crc32c.
-func (db *remoteDB) readAndCRC(key fsdb.Key) (uint32, []byte, error) {
-	reader, err := db.local.Read(key)
+func (db *impl) readAndCRC(
+	ctx context.Context,
+	key fsdb.Key,
+) (uint32, []byte, error) {
+	reader, err := db.local.Read(ctx, key)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -158,12 +185,19 @@ func (db *remoteDB) readAndCRC(key fsdb.Key) (uint32, []byte, error) {
 	if err != nil {
 		return 0, nil, err
 	}
+
+	select {
+	default:
+	case <-ctx.Done():
+		return 0, nil, ctx.Err()
+	}
+
 	return crc32.Checksum(buf, crc32cTable), buf, nil
 }
 
 // uploadKey uploads a key to remote bucket, and deletes the local copy.
-func (db *remoteDB) uploadKey(key fsdb.Key) error {
-	oldCrc, content, err := db.readAndCRC(key)
+func (db *impl) uploadKey(ctx context.Context, key fsdb.Key) error {
+	oldCrc, content, err := db.readAndCRC(ctx, key)
 	if err != nil {
 		return err
 	}
@@ -171,25 +205,47 @@ func (db *remoteDB) uploadKey(key fsdb.Key) error {
 	if err != nil {
 		return err
 	}
-	if err = db.bucket.Write(db.opts.GetRemoteName(key), reader); err != nil {
+
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	err = db.bucket.Write(ctx, db.opts.GetRemoteName(key), reader)
+	if err != nil {
 		return err
 	}
+
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
 	if db.opts.GetUseLock() {
 		db.locks.Lock(string(key))
 		defer db.locks.Unlock(string(key))
 	}
 	// check crc again before deleting
-	newCrc, _, err := db.readAndCRC(key)
+	newCrc, _, err := db.readAndCRC(ctx, key)
 	if err != nil {
 		return err
 	}
+
+	select {
+	default:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
 	if newCrc == oldCrc {
-		return db.local.Delete(key)
+		return db.local.Delete(ctx, key)
 	}
 	return nil
 }
 
-func (db *remoteDB) startScanLoop(ctx context.Context) {
+func (db *impl) startScanLoop(ctx context.Context) {
 	n := db.opts.GetUploadThreadNum()
 	logger := db.opts.GetLogger()
 	keys := make(chan fsdb.Key, 0)
@@ -212,7 +268,7 @@ func (db *remoteDB) startScanLoop(ctx context.Context) {
 						atomic.AddInt64(skipped, 1)
 						continue
 					}
-					if err := db.uploadKey(key); err != nil {
+					if err := db.uploadKey(ctx, key); err != nil {
 						// All errors will be retried on next scan loop,
 						// safe to just log and ignore.
 						if logger != nil {
@@ -241,6 +297,7 @@ func (db *remoteDB) startScanLoop(ctx context.Context) {
 			started := time.Now()
 
 			if err := db.local.ScanKeys(
+				ctx,
 				func(key fsdb.Key) bool {
 					select {
 					case <-ctx.Done():

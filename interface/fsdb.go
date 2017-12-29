@@ -1,6 +1,7 @@
 package fsdb
 
 import (
+	"context"
 	"io"
 )
 
@@ -13,7 +14,7 @@ type FSDB interface {
 	// It should never return both nil reader and nil err.
 	//
 	// It's the caller's responsibility to close the ReadCloser returned.
-	Read(key Key) (reader io.ReadCloser, err error)
+	Read(ctx context.Context, key Key) (reader io.ReadCloser, err error)
 
 	// Write opens an entry and returns a WriteCloser.
 	//
@@ -21,12 +22,12 @@ type FSDB interface {
 	//
 	// If data is actually a ReadCloser,
 	// it's the caller's responsibility to close it after Write function returns.
-	Write(key Key, data io.Reader) error
+	Write(ctx context.Context, key Key, data io.Reader) error
 
 	// Delete deletes an entry.
 	//
 	// If the key does not exist, it should return a NoSuchKeyError.
-	Delete(key Key) error
+	Delete(ctx context.Context, key Key) error
 }
 
 // Local defines extra interface for a local FSDB implementation.
@@ -38,7 +39,7 @@ type Local interface {
 	// This function would be heavy on IO and takes a long time. Use with caution.
 	//
 	// The behavior is undefined for keys changed after the scan started.
-	ScanKeys(keyFunc KeyFunc, errFunc ErrFunc) error
+	ScanKeys(ctx context.Context, keyFunc KeyFunc, errFunc ErrFunc) error
 }
 
 // KeyFunc is used in ScanKeys function in Local interface.

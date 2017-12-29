@@ -1,6 +1,7 @@
 package bucket
 
 import (
+	"context"
 	"io"
 	"time"
 
@@ -38,22 +39,22 @@ func MockBucket(root string) *Mock {
 	}
 }
 
-func (m *Mock) Read(name string) (io.ReadCloser, error) {
+func (m *Mock) Read(ctx context.Context, name string) (io.ReadCloser, error) {
 	time.Sleep(m.ReadDelay.Before)
 	defer time.Sleep(m.ReadDelay.After)
-	return m.db.Read(fsdb.Key(name))
+	return m.db.Read(ctx, fsdb.Key(name))
 }
 
-func (m *Mock) Write(name string, data io.Reader) error {
+func (m *Mock) Write(ctx context.Context, name string, data io.Reader) error {
 	time.Sleep(m.WriteDelay.Before)
 	defer time.Sleep(m.WriteDelay.After)
-	return m.db.Write(fsdb.Key(name), data)
+	return m.db.Write(ctx, fsdb.Key(name), data)
 }
 
-func (m *Mock) Delete(name string) error {
+func (m *Mock) Delete(ctx context.Context, name string) error {
 	time.Sleep(m.DeleteDelay.Before)
 	defer time.Sleep(m.DeleteDelay.After)
-	return m.db.Delete(fsdb.Key(name))
+	return m.db.Delete(ctx, fsdb.Key(name))
 }
 
 func (m *Mock) IsNotExist(err error) bool {

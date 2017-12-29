@@ -1,6 +1,7 @@
 package local_test
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,11 +12,15 @@ import (
 )
 
 func Example() {
-	db := local.Open(local.NewDefaultOptions("_tmp/fsdb_root").SetUseGzip(true))
-	key := fsdb.Key("name")
+	root, _ := ioutil.TempDir("", "fsdb_")
+	defer os.RemoveAll(root)
 
-	db.Write(key, strings.NewReader("Anakin Skywalker"))
-	reader, err := db.Read(key)
+	db := local.Open(local.NewDefaultOptions(root).SetUseGzip(true))
+	key := fsdb.Key("name")
+	ctx := context.Background()
+
+	db.Write(ctx, key, strings.NewReader("Anakin Skywalker"))
+	reader, err := db.Read(ctx, key)
 	if err != nil {
 		// TODO: handle error
 	}
@@ -26,8 +31,8 @@ func Example() {
 	}
 	fmt.Println(string(name))
 
-	db.Write(key, strings.NewReader("Darth Vader"))
-	reader, err = db.Read(key)
+	db.Write(ctx, key, strings.NewReader("Darth Vader"))
+	reader, err = db.Read(ctx, key)
 	if err != nil {
 		// TODO: handle error
 	}
@@ -38,14 +43,12 @@ func Example() {
 	}
 	fmt.Println(string(name))
 
-	db.Delete(key)
-	_, err = db.Read(key)
+	db.Delete(ctx, key)
+	_, err = db.Read(ctx, key)
 	if fsdb.IsNoSuchKeyError(err) {
 		fmt.Println("Joined force")
 	}
 
-	// Cleanup for go test, no need in prod service.
-	os.RemoveAll("_tmp")
 	// Output:
 	// Anakin Skywalker
 	// Darth Vader

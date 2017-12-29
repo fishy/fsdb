@@ -29,29 +29,30 @@ func (db *dbCollection) Open(ctx context.Context) {
 func TestLocal(t *testing.T) {
 	root, db := createRemoteDB(t, "local: ")
 	defer os.RemoveAll(root)
-	db.Open(context.Background())
+	ctx := context.Background()
+	db.Open(ctx)
 
 	key := fsdb.Key("foo")
 	content := "bar"
 
-	if _, err := db.DB.Read(key); !fsdb.IsNoSuchKeyError(err) {
+	if _, err := db.DB.Read(ctx, key); !fsdb.IsNoSuchKeyError(err) {
 		t.Errorf(
 			"read from empty remote db should return NoSuchKeyError, got %v",
 			err,
 		)
 	}
 
-	if err := db.DB.Write(key, strings.NewReader(content)); err != nil {
+	if err := db.DB.Write(ctx, key, strings.NewReader(content)); err != nil {
 		t.Fatalf("Write failed: %v", err)
 	}
 
 	compareContent(t, db.DB, key, content)
 
-	if err := db.DB.Delete(key); err != nil {
+	if err := db.DB.Delete(ctx, key); err != nil {
 		t.Fatalf("Delete failed: %v", err)
 	}
 
-	if _, err := db.DB.Read(key); !fsdb.IsNoSuchKeyError(err) {
+	if _, err := db.DB.Read(ctx, key); !fsdb.IsNoSuchKeyError(err) {
 		t.Errorf(
 			"read from empty remote db should return NoSuchKeyError, got %v",
 			err,
@@ -78,20 +79,20 @@ func TestRemote(t *testing.T) {
 	key := fsdb.Key("foo")
 	content := "bar"
 
-	if _, err := db.DB.Read(key); !fsdb.IsNoSuchKeyError(err) {
+	if _, err := db.DB.Read(ctx, key); !fsdb.IsNoSuchKeyError(err) {
 		t.Errorf(
 			"read from empty remote db should return NoSuchKeyError, got %v",
 			err,
 		)
 	}
 
-	if err := db.DB.Write(key, strings.NewReader(content)); err != nil {
+	if err := db.DB.Write(ctx, key, strings.NewReader(content)); err != nil {
 		t.Fatalf("Write failed: %v", err)
 	}
 
 	time.Sleep(longer)
 
-	if _, err := db.Local.Read(key); !fsdb.IsNoSuchKeyError(err) {
+	if _, err := db.Local.Read(ctx, key); !fsdb.IsNoSuchKeyError(err) {
 		t.Errorf(
 			"key should be uploaded to remote and deleted locally, got %v",
 			err,
@@ -104,7 +105,7 @@ func TestRemote(t *testing.T) {
 
 	time.Sleep(longer)
 
-	if _, err := db.Local.Read(key); !fsdb.IsNoSuchKeyError(err) {
+	if _, err := db.Local.Read(ctx, key); !fsdb.IsNoSuchKeyError(err) {
 		t.Errorf(
 			"key should be uploaded to remote and deleted locally again, got %v",
 			err,
@@ -115,11 +116,11 @@ func TestRemote(t *testing.T) {
 	// Now it should be available locally
 	compareContent(t, db.Local, key, content)
 
-	if err := db.DB.Delete(key); err != nil {
+	if err := db.DB.Delete(ctx, key); err != nil {
 		t.Fatalf("Delete failed: %v", err)
 	}
 
-	if _, err := db.DB.Read(key); !fsdb.IsNoSuchKeyError(err) {
+	if _, err := db.DB.Read(ctx, key); !fsdb.IsNoSuchKeyError(err) {
 		t.Errorf(
 			"read from empty remote db should return NoSuchKeyError, got %v",
 			err,
@@ -151,16 +152,16 @@ func TestSkip(t *testing.T) {
 	defer cancel()
 	db.Open(ctx)
 
-	if err := db.DB.Write(key1, strings.NewReader(content)); err != nil {
+	if err := db.DB.Write(ctx, key1, strings.NewReader(content)); err != nil {
 		t.Fatalf("Write %v failed: %v", key1, err)
 	}
-	if err := db.DB.Write(key2, strings.NewReader(content)); err != nil {
+	if err := db.DB.Write(ctx, key2, strings.NewReader(content)); err != nil {
 		t.Fatalf("Write %v failed: %v", key2, err)
 	}
 
 	time.Sleep(longer)
 
-	if _, err := db.Local.Read(key1); !fsdb.IsNoSuchKeyError(err) {
+	if _, err := db.Local.Read(ctx, key1); !fsdb.IsNoSuchKeyError(err) {
 		t.Errorf(
 			"%v should be uploaded to remote and deleted locally, got %v",
 			key1,
@@ -212,7 +213,7 @@ func TestSlowUpload(t *testing.T) {
 	db.Open(ctx)
 
 	for _, key := range keys {
-		if err := db.DB.Write(key, strings.NewReader(content)); err != nil {
+		if err := db.DB.Write(ctx, key, strings.NewReader(content)); err != nil {
 			t.Fatalf("Write %v failed: %v", key, err)
 		}
 	}
@@ -255,13 +256,13 @@ func TestUploadRaceCondition(t *testing.T) {
 	defer cancel()
 	db.Open(ctx)
 
-	if err := db.DB.Write(key, strings.NewReader(content1)); err != nil {
+	if err := db.DB.Write(ctx, key, strings.NewReader(content1)); err != nil {
 		t.Fatalf("Write failed: %v", err)
 	}
 
 	go func() {
 		time.Sleep(secondWrite)
-		if err := db.DB.Write(key, strings.NewReader(content2)); err != nil {
+		if err := db.DB.Write(ctx, key, strings.NewReader(content2)); err != nil {
 			t.Fatalf("Write failed: %v", err)
 		}
 		compareContent(t, db.DB, key, content2)
@@ -300,13 +301,13 @@ func TestRemoteReadRaceCondition(t *testing.T) {
 	defer cancel()
 	db.Open(ctx)
 
-	if err := db.DB.Write(key, strings.NewReader(content1)); err != nil {
+	if err := db.DB.Write(ctx, key, strings.NewReader(content1)); err != nil {
 		t.Fatalf("Write failed: %v", err)
 	}
 
 	go func() {
 		time.Sleep(secondWrite)
-		if err := db.DB.Write(key, strings.NewReader(content2)); err != nil {
+		if err := db.DB.Write(ctx, key, strings.NewReader(content2)); err != nil {
 			t.Fatalf("Write failed: %v", err)
 		}
 	}()
@@ -341,7 +342,9 @@ func createRemoteDB(
 func compareContent(t *testing.T, db fsdb.FSDB, key fsdb.Key, content string) {
 	t.Helper()
 
-	reader, err := db.Read(key)
+	ctx := context.Background()
+
+	reader, err := db.Read(ctx, key)
 	if err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
@@ -360,6 +363,7 @@ func scanKeys(t *testing.T, db fsdb.Local) []fsdb.Key {
 
 	keys := make([]fsdb.Key, 0)
 	if err := db.ScanKeys(
+		context.Background(),
 		func(key fsdb.Key) bool {
 			keys = append(keys, key)
 			return true

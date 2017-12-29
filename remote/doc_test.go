@@ -30,18 +30,18 @@ func Example() {
 
 	key := fsdb.Key("key")
 
-	if err := db.Write(key, strings.NewReader("Hello, world!")); err != nil {
+	if err := db.Write(ctx, key, strings.NewReader("Hello, world!")); err != nil {
 		// TODO: handle error
 	}
 
-	reader, err := db.Read(key)
+	reader, err := db.Read(ctx, key)
 	if err != nil {
 		// TODO: handle error
 	}
 	defer reader.Close()
 	// TODO: read from reader
 
-	if err := db.Delete(key); err != nil {
+	if err := db.Delete(ctx, key); err != nil {
 		// TODO: handle error
 	}
 }

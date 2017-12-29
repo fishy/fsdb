@@ -1,6 +1,7 @@
 package bucket
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -14,6 +15,8 @@ func TestMock(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
 	}
+
+	ctx := context.Background()
 
 	delay := time.Millisecond * 50
 	total := delay * 2
@@ -70,7 +73,7 @@ func TestMock(t *testing.T) {
 			)
 		}
 	}()
-	if err := mock.Write(key, strings.NewReader(data)); err != nil {
+	if err := mock.Write(ctx, key, strings.NewReader(data)); err != nil {
 		t.Errorf("write failed: %v", err)
 	}
 	elapsed := time.Now().Sub(started)
@@ -108,7 +111,7 @@ func TestMock(t *testing.T) {
 			)
 		}
 	}()
-	if err := mock.Delete(key); err != nil {
+	if err := mock.Delete(ctx, key); err != nil {
 		t.Errorf("delete failed: %v", err)
 	}
 	elapsed = time.Now().Sub(started)
@@ -123,12 +126,13 @@ func TestMock(t *testing.T) {
 
 func scanKeys(t *testing.T, db fsdb.Local) []fsdb.Key {
 	t.Helper()
+	ctx := context.Background()
 	keys := make([]fsdb.Key, 0)
 	keyFunc := func(key fsdb.Key) bool {
 		keys = append(keys, key)
 		return true
 	}
-	if err := db.ScanKeys(keyFunc, fsdb.IgnoreAll); err != nil {
+	if err := db.ScanKeys(ctx, keyFunc, fsdb.IgnoreAll); err != nil {
 		t.Fatalf("ScanKeys returned error: %v", err)
 	}
 	return keys

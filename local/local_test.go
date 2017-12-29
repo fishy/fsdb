@@ -3,6 +3,7 @@ package local_test
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -106,6 +107,7 @@ func TestChangeCompression(t *testing.T) {
 }
 
 func TestScan(t *testing.T) {
+	ctx := context.Background()
 	root, err := ioutil.TempDir("", "fsdb_")
 	if err != nil {
 		t.Fatalf("failed to get tmp dir: %v", err)
@@ -121,7 +123,7 @@ func TestScan(t *testing.T) {
 			return ret
 		}
 	}
-	err = db.ScanKeys(keyFunc(true), fsdb.IgnoreAll)
+	err = db.ScanKeys(ctx, keyFunc(true), fsdb.IgnoreAll)
 	if err != nil {
 		t.Fatalf("ScanKeys failed: %v", err)
 	}
@@ -135,11 +137,9 @@ func TestScan(t *testing.T) {
 		"foobar": true,
 	}
 	for key := range expectKeys {
-		if err := db.Write(fsdb.Key(key), strings.NewReader("")); err != nil {
-			t.Fatalf("Write failed: %v", err)
-		}
+		testWrite(t, db, fsdb.Key(key), "")
 	}
-	if err := db.ScanKeys(keyFunc(true), fsdb.StopAll); err != nil {
+	if err := db.ScanKeys(ctx, keyFunc(true), fsdb.StopAll); err != nil {
 		t.Fatalf("ScanKeys failed: %v", err)
 	}
 	if !reflect.DeepEqual(keys, expectKeys) {
@@ -147,11 +147,54 @@ func TestScan(t *testing.T) {
 	}
 
 	keys = make(map[string]bool)
-	if err := db.ScanKeys(keyFunc(false), fsdb.StopAll); err != nil {
+	if err := db.ScanKeys(ctx, keyFunc(false), fsdb.StopAll); err != nil {
 		t.Fatalf("ScanKeys failed: %v", err)
 	}
 	if len(keys) != 1 {
 		t.Errorf("Scan should stop after the first key, got: %+v", keys)
+	}
+}
+
+func TestScanCancel(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
+
+	sleep := time.Millisecond * 100
+	shorter := time.Millisecond * 50
+
+	ctx, cancel := context.WithTimeout(context.Background(), shorter)
+	defer cancel()
+
+	root, err := ioutil.TempDir("", "fsdb_")
+	if err != nil {
+		t.Fatalf("failed to get tmp dir: %v", err)
+	}
+	defer os.RemoveAll(root)
+	opts := local.NewDefaultOptions(root)
+	db := local.Open(opts)
+
+	keys := []fsdb.Key{
+		fsdb.Key("foo"),
+		fsdb.Key("bar"),
+	}
+	for _, key := range keys {
+		testWrite(t, db, key, "")
+	}
+
+	keyFunc := func(key fsdb.Key) bool {
+		time.Sleep(sleep)
+		return true
+	}
+	started := time.Now()
+	err = db.ScanKeys(ctx, keyFunc, fsdb.IgnoreAll)
+	elapsed := time.Now().Sub(started)
+	t.Logf("ScanKeys took %v", elapsed)
+	if err != context.DeadlineExceeded {
+		t.Errorf("ScanKeys should return %v, got %v", context.DeadlineExceeded, err)
+	}
+	if elapsed > sleep*time.Duration(len(keys)) {
+		t.Errorf("ScanKeys took too long: %v", elapsed)
 	}
 }
 
@@ -162,6 +205,7 @@ func BenchmarkReadWrite(b *testing.B) {
 	}
 	defer os.RemoveAll(root)
 
+	ctx := context.Background()
 	keySize := 12
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 
@@ -200,7 +244,7 @@ func BenchmarkReadWrite(b *testing.B) {
 										key := fsdb.Key(randomBytes(b, r, keySize))
 										keys = append(keys, key)
 
-										err := db.Write(key, bytes.NewReader(content))
+										err := db.Write(ctx, key, bytes.NewReader(content))
 										if err != nil {
 											b.Fatalf("Write failed: %v", err)
 										}
@@ -212,7 +256,7 @@ func BenchmarkReadWrite(b *testing.B) {
 								func(b *testing.B) {
 									for i := 0; i < b.N; i++ {
 										key := keys[r.Int31n(int32(len(keys)))]
-										reader, err := db.Read(key)
+										reader, err := db.Read(ctx, key)
 										if err != nil {
 											b.Fatalf("Read failed: %v", err)
 										}
@@ -248,28 +292,28 @@ func randomBytes(b *testing.B, r *rand.Rand, size int) []byte {
 
 func testDeleteEmpty(t *testing.T, db fsdb.FSDB, key fsdb.Key) {
 	t.Helper()
-	if err := db.Delete(key); !fsdb.IsNoSuchKeyError(err) {
+	if err := db.Delete(context.Background(), key); !fsdb.IsNoSuchKeyError(err) {
 		t.Errorf("Expected NoSuchKeyError, got: %v", err)
 	}
 }
 
 func testDelete(t *testing.T, db fsdb.FSDB, key fsdb.Key) {
 	t.Helper()
-	if err := db.Delete(key); err != nil {
+	if err := db.Delete(context.Background(), key); err != nil {
 		t.Errorf("Delete failed: %v", err)
 	}
 }
 
 func testReadEmpty(t *testing.T, db fsdb.FSDB, key fsdb.Key) {
 	t.Helper()
-	if _, err := db.Read(key); !fsdb.IsNoSuchKeyError(err) {
+	if _, err := db.Read(context.Background(), key); !fsdb.IsNoSuchKeyError(err) {
 		t.Errorf("Expected NoSuchKeyError, got: %v", err)
 	}
 }
 
 func testRead(t *testing.T, db fsdb.FSDB, key fsdb.Key, expect string) {
 	t.Helper()
-	reader, err := db.Read(key)
+	reader, err := db.Read(context.Background(), key)
 	if err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
@@ -285,7 +329,8 @@ func testRead(t *testing.T, db fsdb.FSDB, key fsdb.Key, expect string) {
 
 func testWrite(t *testing.T, db fsdb.FSDB, key fsdb.Key, data string) {
 	t.Helper()
-	if err := db.Write(key, strings.NewReader(data)); err != nil {
+	err := db.Write(context.Background(), key, strings.NewReader(data))
+	if err != nil {
 		t.Fatalf("Write failed: %v", err)
 	}
 }

@@ -3,6 +3,7 @@ package local
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -65,7 +66,7 @@ func Open(opts Options) fsdb.Local {
 	}
 }
 
-func (db *impl) Read(key fsdb.Key) (io.ReadCloser, error) {
+func (db *impl) Read(ctx context.Context, key fsdb.Key) (io.ReadCloser, error) {
 	dir := db.opts.GetDirForKey(key)
 	keyFile := dir + KeyFilename
 	if _, err := os.Lstat(keyFile); os.IsNotExist(err) {
@@ -97,7 +98,7 @@ func (db *impl) Read(key fsdb.Key) (io.ReadCloser, error) {
 	return nil, &fsdb.NoSuchKeyError{Key: key}
 }
 
-func (db *impl) Write(key fsdb.Key, data io.Reader) (err error) {
+func (db *impl) Write(ctx context.Context, key fsdb.Key, data io.Reader) (err error) {
 	dir := db.opts.GetDirForKey(key)
 	keyFile := dir + KeyFilename
 	if _, err = os.Lstat(keyFile); err == nil {
@@ -189,7 +190,7 @@ func (db *impl) Write(key fsdb.Key, data io.Reader) (err error) {
 	return nil
 }
 
-func (db *impl) Delete(key fsdb.Key) error {
+func (db *impl) Delete(ctx context.Context, key fsdb.Key) error {
 	dir := db.opts.GetDirForKey(key)
 	keyFile := dir + KeyFilename
 	if _, err := os.Lstat(keyFile); os.IsNotExist(err) {
@@ -201,10 +202,20 @@ func (db *impl) Delete(key fsdb.Key) error {
 	return os.RemoveAll(dir)
 }
 
-func (db *impl) ScanKeys(keyFunc fsdb.KeyFunc, errFunc fsdb.ErrFunc) error {
+func (db *impl) ScanKeys(
+	ctx context.Context,
+	keyFunc fsdb.KeyFunc,
+	errFunc fsdb.ErrFunc,
+) error {
 	if err := filepath.Walk(
 		db.opts.GetRootDataDir(),
 		func(path string, info os.FileInfo, err error) error {
+			select {
+			default:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+
 			if err != nil {
 				if errFunc(path, err) {
 					return filepath.SkipDir
