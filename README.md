@@ -1,3 +1,6 @@
+[![GoDoc](https://godoc.org/github.com/fishy/fsdb?status.svg)](https://godoc.org/github.com/fishy/fsdb)
+[![Go Report Card](https://goreportcard.com/badge/github.com/fishy/fsdb)](https://goreportcard.com/report/github.com/fishy/fsdb)
+
 # FSDB
 
 FSDB is a collection of [Go](https://golang.org) libraries providing a key-value
@@ -18,7 +21,7 @@ FSDB store the data as-is or use optional gzip compression,
 making it a better solution for companies that need to store huge amount of data
 and is less sensitive to data latency.
 
-FSDB could also be used as the last item of your key-value food chain:
+FSDB could also be used as the last layer of your layered key-value stores:
 Use in-memory libraries for samllest, most time sensitive data;
 Use other on-disk libraries for larger, less time sensitive data;
 And use FSDB for largest, least latency sensitive data.
@@ -26,7 +29,7 @@ And use FSDB for largest, least latency sensitive data.
 Further more, FSDB provided a hybrid implementation,
 which allows you to put some of your data on a remote bucket
 (AWS S3, Google Cloud Storage, etc.),
-providing an even better price per GB (and higher latency).
+providing an exra layer for larger and higher latency data.
 
 It can also be used to implement mocks of remote library.
 For example, package [bucket](https://godoc.org/github.com/fishy/fsdb/bucket)
