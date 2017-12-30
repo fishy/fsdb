@@ -276,6 +276,12 @@ func (db *impl) uploadKey(ctx context.Context, key fsdb.Key) error {
 }
 
 func (db *impl) startScanLoop(ctx context.Context) {
+	select {
+	default:
+	case <-ctx.Done():
+		return
+	}
+
 	n := db.opts.GetUploadThreadNum()
 	logger := db.opts.GetLogger()
 	keys := make(chan fsdb.Key, 0)
