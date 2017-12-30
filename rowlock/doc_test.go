@@ -12,7 +12,7 @@ func Example() {
 	lock := rowlock.NewRowLock(rowlock.MutexNewLocker)
 	key1 := "key1"
 	key2 := "key2"
-	round := time.Millisecond * 10
+	round := time.Millisecond * 20
 
 	keys := []string{key1, key1, key2, key2}
 	sleeps := []time.Duration{

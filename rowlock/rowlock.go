@@ -12,7 +12,7 @@ import (
 // It has no relation to the number of rows in the RowLock.
 const LockerPoolMaxSize = 10
 
-// NewLocker defines a type function that can be used to create a new Locker.
+// NewLocker defines a type of function that can be used to create a new Locker.
 type NewLocker func() sync.Locker
 
 // MutexNewLocker is a NewLocker using sync.Mutex.
@@ -41,12 +41,16 @@ func NewRowLock(f NewLocker) *RowLock {
 	}
 }
 
-// Lock locks a row
+// Lock locks a row.
+//
+// row must be hashable.
 func (rl *RowLock) Lock(row interface{}) {
 	rl.getLocker(row).Lock()
 }
 
-// Unlock unlocks a row
+// Unlock unlocks a row.
+//
+// row must be hashable.
 func (rl *RowLock) Unlock(row interface{}) {
 	rl.getLocker(row).Unlock()
 }
