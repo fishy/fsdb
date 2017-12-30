@@ -49,14 +49,15 @@
 // Please note that the write time includes the time used to generate the random
 // binary data.
 // Also note that the read time could be much smaller than reality when the
-// corresponding write benchmark test only ran for a few times (large size),
+// corresponding write benchmark test only ran for a few times
+// (large size sample, like the 256M benchmark test results below),
 // as those read benchmark tests will read from the same file over and over
 // again, and most filesystem will optimize for such use case.
 //
 // You should choose your compression options based on your benchmark result,
 // typical data size and estimated read/write operation ratio.
 //
-// A sample result on Debian sid ext4 non-SSD is:
+// A sample result on Debian sid (kernel 4.14) ext4 non-SSD is:
 //     $ go test -bench .
 //     goos: linux
 //     goarch: amd64
@@ -102,6 +103,54 @@
 //     BenchmarkReadWrite/1K/nocompression/read-2    	   50000	     30951 ns/op
 //     PASS
 //     ok  	github.com/fishy/fsdb/local	192.207s
+//
+// And a sample result on macOS 10.12.6 HFS+ SSD:
+//     $ go test -bench .
+//     goos: darwin
+//     goarch: amd64
+//     pkg: github.com/fishy/fsdb/local
+//     BenchmarkReadWrite/1K/nocompression/write-8         2000            627496 ns/op
+//     BenchmarkReadWrite/1K/nocompression/read-8         50000             26234 ns/op
+//     BenchmarkReadWrite/1K/gzip-min/write-8              3000            585881 ns/op
+//     BenchmarkReadWrite/1K/gzip-min/read-8              50000             26138 ns/op
+//     BenchmarkReadWrite/1K/gzip-default/write-8          3000            647935 ns/op
+//     BenchmarkReadWrite/1K/gzip-default/read-8          50000             29446 ns/op
+//     BenchmarkReadWrite/1K/gzip-max/write-8              3000            593911 ns/op
+//     BenchmarkReadWrite/1K/gzip-max/read-8              50000             27001 ns/op
+//     BenchmarkReadWrite/10K/nocompression/write-8        3000            630647 ns/op
+//     BenchmarkReadWrite/10K/nocompression/read-8        50000             31496 ns/op
+//     BenchmarkReadWrite/10K/gzip-min/write-8             2000            597253 ns/op
+//     BenchmarkReadWrite/10K/gzip-min/read-8             50000             30775 ns/op
+//     BenchmarkReadWrite/10K/gzip-default/write-8         3000            619333 ns/op
+//     BenchmarkReadWrite/10K/gzip-default/read-8         50000             29823 ns/op
+//     BenchmarkReadWrite/10K/gzip-max/write-8             3000            563971 ns/op
+//     BenchmarkReadWrite/10K/gzip-max/read-8             50000             29140 ns/op
+//     BenchmarkReadWrite/1M/nocompression/write-8         2000           1106447 ns/op
+//     BenchmarkReadWrite/1M/nocompression/read-8         50000             27095 ns/op
+//     BenchmarkReadWrite/1M/gzip-min/write-8              2000           1116115 ns/op
+//     BenchmarkReadWrite/1M/gzip-min/read-8              50000             27201 ns/op
+//     BenchmarkReadWrite/1M/gzip-default/write-8          2000           1140712 ns/op
+//     BenchmarkReadWrite/1M/gzip-default/read-8          50000             26646 ns/op
+//     BenchmarkReadWrite/1M/gzip-max/write-8              2000            983144 ns/op
+//     BenchmarkReadWrite/1M/gzip-max/read-8              50000             26480 ns/op
+//     BenchmarkReadWrite/10M/nocompression/write-8         100          10694977 ns/op
+//     BenchmarkReadWrite/10M/nocompression/read-8        50000             24534 ns/op
+//     BenchmarkReadWrite/10M/gzip-min/write-8              100          10443349 ns/op
+//     BenchmarkReadWrite/10M/gzip-min/read-8            100000             23875 ns/op
+//     BenchmarkReadWrite/10M/gzip-default/write-8          200          10210270 ns/op
+//     BenchmarkReadWrite/10M/gzip-default/read-8         50000             24585 ns/op
+//     BenchmarkReadWrite/10M/gzip-max/write-8              100          11050222 ns/op
+//     BenchmarkReadWrite/10M/gzip-max/read-8            100000             23358 ns/op
+//     BenchmarkReadWrite/256M/nocompression/write-8          5         318933511 ns/op
+//     BenchmarkReadWrite/256M/nocompression/read-8      100000             21785 ns/op
+//     BenchmarkReadWrite/256M/gzip-min/write-8               5         337559416 ns/op
+//     BenchmarkReadWrite/256M/gzip-min/read-8           100000             21841 ns/op
+//     BenchmarkReadWrite/256M/gzip-default/write-8           5         304396763 ns/op
+//     BenchmarkReadWrite/256M/gzip-default/read-8       100000             21917 ns/op
+//     BenchmarkReadWrite/256M/gzip-max/write-8               5         307852001 ns/op
+//     BenchmarkReadWrite/256M/gzip-max/read-8           100000             21520 ns/op
+//     PASS
+//     ok      github.com/fishy/fsdb/local     99.760s
 //
 // Other Notes
 //
