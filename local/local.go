@@ -229,10 +229,7 @@ func (db *impl) Write(
 	}
 
 	// Move key file
-	if err = os.Rename(tmpKeyFile, keyFile); err != nil {
-		return err
-	}
-	return nil
+	return os.Rename(tmpKeyFile, keyFile)
 }
 
 func (db *impl) Delete(ctx context.Context, key fsdb.Key) error {
