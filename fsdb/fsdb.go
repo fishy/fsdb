@@ -38,7 +38,8 @@ type Local interface {
 	//
 	// This function would be heavy on IO and takes a long time. Use with caution.
 	//
-	// The behavior is undefined for keys changed after the scan started.
+	// The behavior is undefined for keys changed after the scan started,
+	// but it should never visit the same key twice in a single scan.
 	ScanKeys(ctx context.Context, keyFunc KeyFunc, errFunc ErrFunc) error
 }
 
