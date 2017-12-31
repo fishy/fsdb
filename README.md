@@ -1,4 +1,4 @@
-[![GoDoc](https://godoc.org/github.com/fishy/fsdb?status.svg)](https://godoc.org/github.com/fishy/fsdb)
+[![GoDoc](https://godoc.org/github.com/fishy/fsdb/fsdb?status.svg)](https://godoc.org/github.com/fishy/fsdb/fsdb)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fishy/fsdb)](https://goreportcard.com/report/github.com/fishy/fsdb)
 
 # FSDB

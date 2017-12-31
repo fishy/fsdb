@@ -16,7 +16,7 @@ type FSDB interface {
 	// It's the caller's responsibility to close the ReadCloser returned.
 	Read(ctx context.Context, key Key) (reader io.ReadCloser, err error)
 
-	// Write opens an entry and returns a WriteCloser.
+	// Write opens an entry.
 	//
 	// If the key already exists, it will be overwritten.
 	//
