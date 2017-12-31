@@ -3,6 +3,27 @@
 //
 // It implements fsdb.Local interface.
 //
+// Layout
+//
+// With default options (SHA-512/224 hash, 3 directory levels),
+// a key of "key" will be hashed into
+//     6cb1b0e50d74419e2244eaa7328235f71b48c7e1c33b23f6f9517d14
+// and the files will be stored under:
+//     <fsdb-root>/
+//       data/
+//         6c/
+//           b1/
+//             b0/
+//               e50d74419e2244eaa7328235f71b48c7e1c33b23f6f9517d14/
+//                 key     // Key file
+//                 data    // Data file if no compression
+//                 data.gz // Data file if gzip enabled
+//
+// There could also be temporary files for unfinished write operations under
+//     <fsdb-root>/_tmp/fsdb_<tmpdir>/
+//
+// Both hash function and directory levels are configurable.
+//
 // Atomicity
 //
 // There's no extra locks in the implementation.
