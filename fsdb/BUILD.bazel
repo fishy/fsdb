@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "doc.go",
+        "error.go",
+        "fsdb.go",
+        "key.go",
+    ],
+    importpath = "github.com/fishy/fsdb/fsdb",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_xtest",
+    size = "small",
+    srcs = [
+        "doc_test.go",
+        "error_test.go",
+        "key_test.go",
+    ],
+    importpath = "github.com/fishy/fsdb/fsdb_test",
+    deps = [":go_default_library"],
+)

@@ -6,7 +6,7 @@
 FSDB is a collection of [Go](https://golang.org) libraries providing a key-value
 store on your file system.
 
-([Example code on godoc](https://godoc.org/github.com/fishy/fsdb/local#example-package))
+([Example code on godoc](https://godoc.org/github.com/fishy/fsdb/fsdb/local#example-package))
 
 ## Why?
 
@@ -31,7 +31,7 @@ which allows you to put some of your data on a remote bucket
 (AWS S3, Google Cloud Storage, etc.),
 providing an exra layer for larger and higher latency data.
 
-It can also be used to implement mocks of remote library.
+It can also be used to implement mocks of remote libraries.
 For example, package [bucket](https://godoc.org/github.com/fishy/fsdb/bucket)
 uses local FSDB to implement its
 [mock](https://github.com/fishy/fsdb/blob/master/bucket/mock.go) for testing.
@@ -41,9 +41,9 @@ uses local FSDB to implement its
 FSDB has a minimal overhead,
 which means its performance is almost identical to the disk I/O performance.
 The local implementation has no locks.
-The hybrid remote implementation only has an optional row lock,
+The hybrid implementation only has an optional row lock,
 please refer to the
-[package documentation](https://godoc.org/github.com/fishy/fsdb/remote#hdr-Concurrency)
+[package documentation](https://godoc.org/github.com/fishy/fsdb/fsdb/hybrid#hdr-Concurrency)
 for more details.
 
 The local and hybrid implementation has the same interface,
@@ -57,11 +57,11 @@ All it uses are Go standard libraries and libraries from within this repository.
 
 ### FSDB core packages:
 
-* Package [fsdb](https://godoc.org/github.com/fishy/fsdb/interface)
+* Package [fsdb](https://godoc.org/github.com/fishy/fsdb/fsdb)
   defines the interface. It does not provide implementations.
-* Package [local](https://godoc.org/github.com/fishy/fsdb/local)
+* Package [local](https://godoc.org/github.com/fishy/fsdb/fsdb/local)
   provides the local implementation.
-* Package [remote](https://godoc.org/github.com/fishy/fsdb/remote)
+* Package [hybrid](https://godoc.org/github.com/fishy/fsdb/fsdb/hybrid)
   provides the hybrid implementation.
 
 ### Remote bucket package:
@@ -74,16 +74,17 @@ All it uses are Go standard libraries and libraries from within this repository.
 
 ### Supportive packages:
 
-* Package [errbatch](https://godoc.org/github.com/fishy/fsdb/errbatch) provides
-  [ErrBatch](https://godoc.org/github.com/fishy/fsdb/errbatch#ErrBatch),
+* Package [errbatch](https://godoc.org/github.com/fishy/fsdb/libs/errbatch)
+  provides
+  [ErrBatch](https://godoc.org/github.com/fishy/fsdb/libs/errbatch#ErrBatch),
   which can be used to compile multiple errors into a single error.
-* Package [pool](https://godoc.org/github.com/fishy/fsdb/pool)
+* Package [pool](https://godoc.org/github.com/fishy/fsdb/libs/pool)
   provides an implementation of resource pool.
-* Package [rowlock](https://godoc.org/github.com/fishy/fsdb/rowlock)
+* Package [rowlock](https://godoc.org/github.com/fishy/fsdb/libs/rowlock)
   provides a row lock implementation.
-* Package [wrapreader](https://godoc.org/github.com/fishy/fsdb/wrapreader)
+* Package [wrapreader](https://godoc.org/github.com/fishy/fsdb/libs/wrapreader)
   provides a function to
-  [Wrap](https://godoc.org/github.com/fishy/fsdb/wrapreader#Wrap) an
+  [Wrap](https://godoc.org/github.com/fishy/fsdb/libs/wrapreader#Wrap) an
   [io.Reader](https://godoc.org/io#Reader) and an
   [io.Closer](https://godoc.org/io#Closer)
   into an [io.ReadCloser](https://godoc.org/io#ReadCloser).
@@ -97,7 +98,7 @@ under the repository root directory.
 
 There are some tests with sleep calls,
 you can skip them by running `go test -short` instead.
-Package [local](https://godoc.org/github.com/fishy/fsdb/local)
+Package [local](https://godoc.org/github.com/fishy/fsdb/fsdb/local)
 provides a benchmark test can be run with `go test -bench .`.
 
 ## License

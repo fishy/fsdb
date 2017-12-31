@@ -1,0 +1,34 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "doc.go",
+        "hybrid.go",
+        "options.go",
+    ],
+    importpath = "github.com/fishy/fsdb/fsdb/hybrid",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//bucket:go_default_library",
+        "//fsdb:go_default_library",
+        "//libs/errbatch:go_default_library",
+        "//libs/rowlock:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_xtest",
+    size = "small",
+    srcs = [
+        "doc_test.go",
+        "hybrid_test.go",
+    ],
+    importpath = "github.com/fishy/fsdb/fsdb/hybrid_test",
+    deps = [
+        ":go_default_library",
+        "//bucket:go_default_library",
+        "//fsdb:go_default_library",
+        "//fsdb/local:go_default_library",
+    ],
+)

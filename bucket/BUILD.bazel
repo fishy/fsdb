@@ -10,8 +10,8 @@ go_library(
     importpath = "github.com/fishy/fsdb/bucket",
     visibility = ["//visibility:public"],
     deps = [
-        "//interface:go_default_library",
-        "//local:go_default_library",
+        "//fsdb:go_default_library",
+        "//fsdb/local:go_default_library",
     ],
 )
 
@@ -21,5 +21,5 @@ go_test(
     srcs = ["mock_test.go"],
     embed = [":go_default_library"],
     importpath = "github.com/fishy/fsdb/bucket",
-    deps = ["//interface:go_default_library"],
+    deps = ["//fsdb:go_default_library"],
 )
