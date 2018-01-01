@@ -1,4 +1,4 @@
-workspace(name = "fsdb")
+workspace(name = "com_github_fishy_fsdb")
 
 http_archive(
     name = "io_bazel_rules_go",
