@@ -10,7 +10,7 @@ import (
 )
 
 // Make sure *Mock satisfies Bucket interface.
-var _ Bucket = new(Mock)
+var _ Bucket = (*Mock)(nil)
 
 // MockOperationDelay defines the delay before and after an operation.
 // It's useful to mimic network latency in tests.

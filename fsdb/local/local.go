@@ -16,9 +16,8 @@ import (
 	"github.com/fishy/fsdb/libs/wrapreader"
 )
 
-// Make sure the classes satisify interfaces.
-var _ fsdb.Local = new(impl)
-var _ error = new(KeyCollisionError)
+// Make sure the *KeyCollisionError satisify error interface.
+var _ error = (*KeyCollisionError)(nil)
 
 const tempDirPrefix = "fsdb_"
 const tempDirMode os.FileMode = 0700
