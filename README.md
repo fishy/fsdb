@@ -69,8 +69,9 @@ All it uses are Go standard libraries and libraries from within this repository.
 * Package [bucket](https://godoc.org/github.com/fishy/fsdb/bucket)
   defines the bucket interface.
   It does not provide implementations.
-  Also no implementations are provided in this repository,
-  but it's easy to implement wrapping S3 or GCS official Go libraries.
+  Implementations for [AWS S3](https://godoc.org/github.com/fishy/s3bucket) and
+  [Google Cloud Storage](https://godoc.org/github.com/fishy/gcsbucket)
+  can be found in external libraries.
 
 ### Supportive packages:
 
