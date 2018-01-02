@@ -45,6 +45,10 @@ type impl struct {
 //
 // Delete deletes from both local and remote,
 // and returns combined errors, if any.
+//
+// github.com/fishy/gcsbucket and github.com/fishy/s3bucket provide
+// bucket.Bucket implementations for Google Cloud Storage and AWS S3,
+// respectively.
 func Open(
 	ctx context.Context,
 	local fsdb.Local,
