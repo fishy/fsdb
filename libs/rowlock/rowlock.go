@@ -2,15 +2,7 @@ package rowlock
 
 import (
 	"sync"
-
-	"github.com/fishy/fsdb/libs/pool"
 )
-
-// LockerPoolMaxSize is the max size of the locker pool.
-//
-// The locker pool contains the lockers to be used for new rows.
-// It has no relation to the number of rows in the RowLock.
-const LockerPoolMaxSize = 10
 
 // NewLocker defines a type of function that can be used to create a new Locker.
 type NewLocker func() sync.Locker
@@ -27,17 +19,17 @@ func MutexNewLocker() sync.Locker {
 // Instead, a Lock/Unlock operation is operated on a given row/key.
 type RowLock struct {
 	locks      sync.Map
-	g          pool.Generator
-	lockerPool *pool.Pool
+	lockerPool sync.Pool
 }
 
 // NewRowLock creates a new RowLock with the given NewLocker.
 func NewRowLock(f NewLocker) *RowLock {
 	return &RowLock{
-		g: func() interface{} {
-			return f()
+		lockerPool: sync.Pool{
+			New: func() interface{} {
+				return f()
+			},
 		},
-		lockerPool: pool.NewPool(LockerPoolMaxSize),
 	}
 }
 
@@ -60,7 +52,7 @@ func (rl *RowLock) Unlock(row interface{}) {
 // If this is a new row,
 // a new locker will be created using the NewLocker specified in NewRowLock.
 func (rl *RowLock) getLocker(row interface{}) sync.Locker {
-	newLocker := rl.lockerPool.Get(rl.g)
+	newLocker := rl.lockerPool.Get()
 	locker, loaded := rl.locks.LoadOrStore(row, newLocker)
 	if loaded {
 		rl.lockerPool.Put(newLocker)
