@@ -79,8 +79,6 @@ All it uses are Go standard libraries and libraries from within this repository.
   provides
   [ErrBatch](https://godoc.org/github.com/fishy/fsdb/libs/errbatch#ErrBatch),
   which can be used to compile multiple errors into a single error.
-* Package [pool](https://godoc.org/github.com/fishy/fsdb/libs/pool)
-  provides an implementation of resource pool.
 * Package [rowlock](https://godoc.org/github.com/fishy/fsdb/libs/rowlock)
   provides a row lock implementation.
 * Package [wrapreader](https://godoc.org/github.com/fishy/fsdb/libs/wrapreader)
