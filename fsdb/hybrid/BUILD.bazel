@@ -24,7 +24,6 @@ go_test(
         "doc_test.go",
         "hybrid_test.go",
     ],
-    importpath = "github.com/fishy/fsdb/fsdb/hybrid_test",
     deps = [
         ":go_default_library",
         "//bucket:go_default_library",

@@ -1,8 +1,8 @@
 package errbatch
 
 import (
-	"bytes"
 	"fmt"
+	"strings"
 )
 
 // ErrBatch is an error that can contain multiple errors.
@@ -19,19 +19,19 @@ func NewErrBatch() *ErrBatch {
 
 // Error satisifies the error interface.
 func (eb *ErrBatch) Error() string {
-	var buf bytes.Buffer
-	buf.WriteString(
+	var builder strings.Builder
+	builder.WriteString(
 		fmt.Sprintf("total %d error(s) in this batch", len(eb.errors)),
 	)
 	for i, err := range eb.errors {
 		if i == 0 {
-			buf.WriteString(": ")
+			builder.WriteString(": ")
 		} else {
-			buf.WriteString("; ")
+			builder.WriteString("; ")
 		}
-		buf.WriteString(err.Error())
+		builder.WriteString(err.Error())
 	}
-	return buf.String()
+	return builder.String()
 }
 
 // Add addes an error into the batch.

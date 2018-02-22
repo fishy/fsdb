@@ -17,6 +17,5 @@ go_test(
         "doc_test.go",
         "rowlock_test.go",
     ],
-    importpath = "github.com/fishy/fsdb/libs/rowlock_test",
     deps = [":go_default_library"],
 )

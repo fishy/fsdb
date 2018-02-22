@@ -23,7 +23,6 @@ go_test(
         "local_test.go",
         "options_test.go",
     ],
-    importpath = "github.com/fishy/fsdb/fsdb/local_test",
     deps = [
         ":go_default_library",
         "//fsdb:go_default_library",

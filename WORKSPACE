@@ -1,9 +1,9 @@
 workspace(name = "com_github_fishy_fsdb")
 
-http_archive(
+git_repository(
     name = "io_bazel_rules_go",
-    url = "https://github.com/bazelbuild/rules_go/releases/download/0.9.0/rules_go-0.9.0.tar.gz",
-    sha256 = "4d8d6244320dd751590f9100cf39fd7a4b75cd901e1f3ffdfd6f048328883695",
+    remote = "https://github.com/bazelbuild/rules_go.git",
+    commit = "4b5e4d361f3a54286260cc36c6371468d62662aa",
 )
 http_archive(
     name = "bazel_gazelle",
