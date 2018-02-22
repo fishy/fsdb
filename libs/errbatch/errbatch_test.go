@@ -83,6 +83,6 @@ func TestCompile(t *testing.T) {
 	err = batch.Compile()
 	expect := "total 3 error(s) in this batch: foo; bar; foobar"
 	if err.Error() != expect {
-		t.Errorf("Compiled error expected %#v, got %v", expect, err)
+		t.Errorf("Compiled error expected %#v, got %#v", expect, err)
 	}
 }

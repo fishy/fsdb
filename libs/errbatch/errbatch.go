@@ -20,16 +20,14 @@ func NewErrBatch() *ErrBatch {
 // Error satisifies the error interface.
 func (eb *ErrBatch) Error() string {
 	var builder strings.Builder
-	builder.WriteString(
-		fmt.Sprintf("total %d error(s) in this batch", len(eb.errors)),
-	)
+	fmt.Fprintf(&builder, "total %d error(s) in this batch", len(eb.errors))
 	for i, err := range eb.errors {
 		if i == 0 {
 			builder.WriteString(": ")
 		} else {
 			builder.WriteString("; ")
 		}
-		builder.WriteString(err.Error())
+		fmt.Fprintf(&builder, "%+v", err)
 	}
 	return builder.String()
 }
