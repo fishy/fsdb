@@ -92,7 +92,7 @@ All it uses are Go standard libraries and libraries from within this repository.
 
 All packages provide its own tests can be run with `go test`.
 If you want to test every package within this repository,
-you can use [Bazel](https://bazel.build/) by running `bazel test ...`
+you can use [vgo](https://github.com/golang/vgo/) by running `vgo test all`
 under the repository root directory.
 
 There are some tests with sleep calls,
