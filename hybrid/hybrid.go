@@ -132,7 +132,7 @@ func (db *impl) Delete(ctx context.Context, key fsdb.Key) error {
 
 	existNeither := true
 
-	ret := errbatch.NewErrBatch()
+	var ret errbatch.ErrBatch
 	err := db.local.Delete(ctx, key)
 	if !fsdb.IsNoSuchKeyError(err) {
 		existNeither = false
