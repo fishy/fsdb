@@ -17,7 +17,7 @@ import (
 	"github.com/fishy/fsdb"
 )
 
-// Make sure the *KeyCollisionError satisify error interface.
+// Make sure *KeyCollisionError satisfies error interface.
 var _ error = (*KeyCollisionError)(nil)
 
 const tempDirPrefix = "fsdb_"
@@ -57,7 +57,7 @@ type impl struct {
 	opts Options
 }
 
-// Open opens an fsdb with the given options.
+// Open opens an FSDB with the given options.
 //
 // There's no need to close it.
 func Open(opts Options) fsdb.Local {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// Make sure *NoSuchKeyError satisifies error interface.
+// Make sure *NoSuchKeyError satisfies error interface.
 var _ error = (*NoSuchKeyError)(nil)
 
 // NoSuchKeyError is an error returned by Read and Delete functions when the key
