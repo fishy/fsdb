@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fishy/fsdb/fsdb"
-	"github.com/fishy/fsdb/fsdb/local"
+	"github.com/fishy/fsdb"
+	"github.com/fishy/fsdb/local"
 )
 
 const lorem = `Lorem ipsum dolor sit amet,

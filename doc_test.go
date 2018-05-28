@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/fishy/fsdb/fsdb"
+	"github.com/fishy/fsdb"
 )
 
 func Example() {

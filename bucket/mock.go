@@ -5,8 +5,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/fishy/fsdb/fsdb"
-	"github.com/fishy/fsdb/fsdb/local"
+	"github.com/fishy/fsdb"
+	"github.com/fishy/fsdb/local"
 )
 
 // Make sure *Mock satisfies Bucket interface.

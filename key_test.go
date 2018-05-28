@@ -3,7 +3,7 @@ package fsdb_test
 import (
 	"testing"
 
-	"github.com/fishy/fsdb/fsdb"
+	"github.com/fishy/fsdb"
 )
 
 func TestString(t *testing.T) {

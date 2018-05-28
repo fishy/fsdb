@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fishy/fsdb/fsdb"
-	"github.com/fishy/fsdb/fsdb/local"
+	"github.com/fishy/fsdb"
+	"github.com/fishy/fsdb/local"
 )
 
 func Example() {

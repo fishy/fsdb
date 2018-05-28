@@ -11,10 +11,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/fishy/errbatch"
+	"github.com/fishy/rowlock"
+
+	"github.com/fishy/fsdb"
 	"github.com/fishy/fsdb/bucket"
-	"github.com/fishy/fsdb/fsdb"
-	"github.com/fishy/fsdb/libs/errbatch"
-	"github.com/fishy/fsdb/libs/rowlock"
 )
 
 const tempFilename = "data"

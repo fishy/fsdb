@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/fishy/fsdb/fsdb"
+	"github.com/fishy/fsdb"
 )
 
 func TestError(t *testing.T) {

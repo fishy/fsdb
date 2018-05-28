@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fishy/fsdb"
 	"github.com/fishy/fsdb/bucket"
-	"github.com/fishy/fsdb/fsdb"
-	"github.com/fishy/fsdb/fsdb/hybrid"
-	"github.com/fishy/fsdb/fsdb/local"
+	"github.com/fishy/fsdb/hybrid"
+	"github.com/fishy/fsdb/local"
 )
 
 type dbCollection struct {

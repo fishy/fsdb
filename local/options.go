@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fishy/fsdb/fsdb"
+	"github.com/fishy/fsdb"
 )
 
 const charsPerLevel = 2

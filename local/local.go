@@ -12,8 +12,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fishy/fsdb/fsdb"
-	"github.com/fishy/fsdb/libs/wrapreader"
+	"github.com/fishy/wrapreader"
+
+	"github.com/fishy/fsdb"
 )
 
 // Make sure the *KeyCollisionError satisify error interface.

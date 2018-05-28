@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/fishy/fsdb/fsdb"
+	"github.com/fishy/fsdb"
 )
 
 // Default options values.

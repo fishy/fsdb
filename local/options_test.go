@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fishy/fsdb/fsdb"
-	"github.com/fishy/fsdb/fsdb/local"
+	"github.com/fishy/fsdb"
+	"github.com/fishy/fsdb/local"
 )
 
 func TestOptions(t *testing.T) {

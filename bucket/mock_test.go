@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fishy/fsdb/fsdb"
+	"github.com/fishy/fsdb"
 )
 
 func TestMock(t *testing.T) {
