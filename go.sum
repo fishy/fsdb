@@ -1,4 +1,6 @@
+github.com/fishy/errbatch v0.0.0-20180528213649-54f5e12eed54 h1:CuowD13UFkVyT8qQ7WSANugSAuu9b2TEdiTcvhV8poc=
 github.com/fishy/errbatch v0.0.0-20180528213649-54f5e12eed54/go.mod h1:jT6yKE1tSjlA9VLZNiZ630ul9Z3ZuUzXEAIJiNlQqjY=
+github.com/fishy/rowlock v0.0.0-20180528220015-119f0ff86f20 h1:34CinU/+D50lB+fgFoQgeZeO0+603NdZ48o3jwPJY3w=
 github.com/fishy/rowlock v0.0.0-20180528220015-119f0ff86f20/go.mod h1:LvlszqohGzHS3HOL120Q0U9ZVl76bIIQBLcEN8YpKjE=
 github.com/fishy/wrapreader v0.0.0-20180721040720-ae10046cfba6 h1:5/GPB5x+uNzjwvum+44iPgyxjfQS8xsAKk9rFWCJNEU=
 github.com/fishy/wrapreader v0.0.0-20180721040720-ae10046cfba6/go.mod h1:p2l1EEMO3XbQ/DquZjJUp/BibHdxawa+SGtYk3D9fJM=
