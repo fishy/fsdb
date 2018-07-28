@@ -64,6 +64,12 @@ and move the the hybrid implementation later as your data grows.
   Implementations for [AWS S3](https://godoc.org/github.com/fishy/s3bucket) and
   [Google Cloud Storage](https://godoc.org/github.com/fishy/gcsbucket)
   can be found in external libraries.
+  There's also an
+  [implementation](https://godoc.org/github.com/fishy/blobbucket)
+  based on
+  [Go-Cloud](https://github.com/google/go-cloud)
+  [Blob](https://godoc.org/github.com/google/go-cloud/blob)
+	interface so you can use any Go-Cloud Blob implementation in hybrid FSDB.
 
 ## Test
 
