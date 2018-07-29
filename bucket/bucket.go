@@ -18,7 +18,7 @@ type Bucket interface {
 	// Delete deletes an entry from the bucket.
 	Delete(ctx context.Context, name string) error
 
-	// IsNotExist checks wether an error returned by Read or Delete means the
+	// IsNotExist checks whether an error returned by Read or Delete means the
 	// entry does not exist on the bucket.
 	IsNotExist(err error) bool
 }
