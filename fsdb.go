@@ -63,7 +63,7 @@ type ErrFunc func(path string, err error) bool
 // StopAll is an ErrFunc that can be used in Local.ScanKeys().
 //
 // It always returns false,
-// means that the scan stops at the first I/O errors it encounters.
+// means that the scan stops at the first I/O error it encounters.
 func StopAll(path string, err error) bool {
 	return false
 }
@@ -71,7 +71,7 @@ func StopAll(path string, err error) bool {
 // IgnoreAll is an ErrFunc that can be used in Local.ScanKeys().
 //
 // It always returns true,
-// means that the scan ignores all I/O errors if possible.
+// means that the scan ignores all I/O errors it could ignore.
 func IgnoreAll(path string, err error) bool {
 	return true
 }
