@@ -11,7 +11,7 @@ func TestError(t *testing.T) {
 	err := &fsdb.NoSuchKeyError{
 		Key: fsdb.Key("foobar"),
 	}
-	expect := "no such key: \"foobar\""
+	expect := "fsdb: no such key: \"foobar\""
 	actual := err.Error()
 	if expect != actual {
 		t.Errorf("(%q).Error() expected %q, got %q", err, expect, actual)

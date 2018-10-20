@@ -23,7 +23,7 @@ var _ error = (*KeyCollisionError)(nil)
 const tempDirPrefix = "fsdb_"
 const tempDirMode os.FileMode = 0700
 
-var errCanceled = errors.New("canceled by keyFunc")
+var errCanceled = errors.New("fsdb/local: canceled by keyFunc")
 
 // Filenames used under the entry directory.
 const (
@@ -47,7 +47,7 @@ type KeyCollisionError struct {
 
 func (err *KeyCollisionError) Error() string {
 	return fmt.Sprintf(
-		"key collision detected: new key is %q, old key was %q",
+		"fsdb/local: key collision detected: new key is %q, old key was %q",
 		err.NewKey,
 		err.OldKey,
 	)

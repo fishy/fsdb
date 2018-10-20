@@ -14,7 +14,7 @@ type NoSuchKeyError struct {
 }
 
 func (err *NoSuchKeyError) Error() string {
-	return fmt.Sprintf("no such key: %q", err.Key)
+	return fmt.Sprintf("fsdb: no such key: %q", err.Key)
 }
 
 // IsNoSuchKeyError checks whether a given error is NoSuchKeyError.
