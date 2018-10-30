@@ -75,6 +75,8 @@ and move the the hybrid implementation later as your data grows.
 
 All packages provide its own tests can be run with `go test`.
 If you want to test every package within this repository,
+on Go 1.11+ you can use `go test ./...`.
+If you are on an older version of Go,
 you can use [vgo](https://github.com/golang/vgo/) by running `vgo test all`
 under the repository root directory.
 
