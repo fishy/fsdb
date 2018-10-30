@@ -283,7 +283,7 @@ func TestRemoteReadRaceCondition(t *testing.T) {
 
 	delay := time.Millisecond * 100
 	longer := time.Millisecond * 120
-	secondWrite := 2 * delay
+	secondWrite := delay
 
 	key := fsdb.Key("key")
 	content1 := "foo"
