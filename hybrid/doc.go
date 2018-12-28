@@ -23,7 +23,7 @@
 //     3. Check local FSDB again to prevent using stale remote data to overwrite local data.
 //     4. If there's still no local data in Step 3, write remote data locally.
 //     5. Return local data.
-// If another overwrite happens between Step 3 and 4,
+// If another write happens between Step 3 and 4,
 // then it might be overwritten by stale remote data.
 //
 // The other case is during upload. The upload process for each key is:
@@ -31,7 +31,7 @@
 //     2. Gzip local data, upload to remote bucket.
 //     3. Calculate local data crc32c again.
 //     4. If the crc32c from Step 1 and Step 3 matches, delete local data.
-// If another overwrite happens between Step 3 and 4,
+// If another write happens between Step 3 and 4,
 // then it might be deleted on Step 4 so we only have stale data in the system.
 //
 // Turning on the optional row lock will make sure the discussed data loss

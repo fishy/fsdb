@@ -50,6 +50,8 @@ type impl struct {
 // github.com/fishy/gcsbucket and github.com/fishy/s3bucket provide
 // bucket.Bucket implementations for Google Cloud Storage and AWS S3,
 // respectively.
+// And github.com/fishy/blobbucket provides a bucket.Bucket implementation based
+// on Go-Cloud Blob interface.
 func Open(
 	ctx context.Context,
 	local fsdb.Local,
@@ -60,7 +62,7 @@ func Open(
 		local:  local,
 		bucket: bucket,
 		opts:   opts,
-		locks:  rowlock.NewRowLock(rowlock.MutexNewLocker),
+		locks:  rowlock.NewRowLock(rowlock.RWMutexNewLocker),
 	}
 	go db.startScanLoop(ctx)
 	return db
@@ -93,8 +95,8 @@ func (db *impl) Read(ctx context.Context, key fsdb.Key) (io.ReadCloser, error) {
 		}
 
 		if db.opts.GetUseLock() {
-			db.locks.Lock(string(key))
-			defer db.locks.Unlock(string(key))
+			db.locks.RLock(string(key))
+			defer db.locks.RUnlock(string(key))
 		}
 		// Read from local again, so that in case a new write happened during
 		// downloading, we don't overwrite it with stale remote data.
@@ -259,8 +261,8 @@ func (db *impl) uploadKey(ctx context.Context, key fsdb.Key) error {
 	}
 
 	if db.opts.GetUseLock() {
-		db.locks.Lock(string(key))
-		defer db.locks.Unlock(string(key))
+		db.locks.RLock(string(key))
+		defer db.locks.RUnlock(string(key))
 	}
 	// check crc again before deleting
 	newCrc, _, err := db.readAndCRC(ctx, key)

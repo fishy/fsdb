@@ -68,7 +68,7 @@ and move the the hybrid implementation later as your data grows.
   [implementation](https://godoc.org/github.com/fishy/blobbucket)
   based on
   [Go-Cloud](https://github.com/google/go-cloud)
-  [Blob](https://godoc.org/github.com/google/go-cloud/blob)
+  [Blob](https://godoc.org/gocloud.dev/blob)
 	interface so you can use any Go-Cloud Blob implementation in hybrid FSDB.
 
 ## Test
