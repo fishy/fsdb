@@ -272,7 +272,7 @@ func (db *impl) ScanKeys(
 
 			if err != nil {
 				if errFunc(path, err) {
-					return filepath.SkipDir
+					return nil
 				}
 				return err
 			}
@@ -292,7 +292,7 @@ func (db *impl) ScanKeys(
 				key, err := readKey(path)
 				if err != nil {
 					if errFunc(path, err) {
-						return filepath.SkipDir
+						return nil
 					}
 					return err
 				}
